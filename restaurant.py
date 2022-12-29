@@ -12,15 +12,15 @@ class RestaurantConfiguration:
         for i in range(1, self.tables+1):
             self.data[i] = self.data.get(i, self.seats[i-1])
 
-    def check(self):
-        """This method check if there is a saved configuration in the database
-        :return True if there is data
-        :return False if there is no data"""
+    # def check(self):
+    #     """This method check if there is a saved configuration in the database
+    #     :return True if there is data
+    #     :return False if there is no data"""
 
     def write_configuration(self):
         """Write restaurant configuration in the database"""
-        if self.check():
-            print("You already have data in database")
+        # if self.check():
+        #     print("You already have data in database")
         db = sqlite3.connect('restaurant.db')
         db.execute('create table if not exists configuration (tables integer, seats integer)')
 
@@ -56,7 +56,7 @@ class Waiters:
         self.waiters = {}
 
     def creating_waiters(self):
-        for i in range(1, self.number +1):
+        for i in range(1, self.number + 1):
             self.waiters[i] = self.waiters.get(i, F"waiter {i}")
         return self.waiters
 
@@ -90,6 +90,42 @@ def main():
     waiter = Waiters(5)
     print(F"The list of waiters is: {waiter.creating_waiters()}")
 
+    db = sqlite3.connect('restaurant.db')
+
+    cur = db.cursor()
+    # cur.execute("drop table seat")
+    #
+    # cur.execute("drop table menu")
+    #
+    # cur.execute("drop table restaurant_tables")
+
+    cur.execute('create table if not exists seat (seatID integer, tableID integer)')
+    cur.execute("create table if not exists restaurant_tables (tableID integer, orderID integer)")
+
+
+    for i, k in res.data.items():
+        cur.executemany("insert into seat values (?, ?)", [(k, i)])
+        cur.executemany("insert into restaurant_tables values (?, ?)", [(i, None)])
+
+    for row in cur.execute("select * from seat"):
+        print(row)
+    print("****************************")
+    for row in cur.execute("select * from restaurant_tables"):
+        print(row)
+
+    cur.execute('create table if not exists menu (itemID integer, itemPrice integer)')
+
+    for i, k in menu.items():
+        cur.executemany("insert into menu values (?, ?)", [(i, k)])
+    print("****************************")
+    for row in cur.execute("select * from menu"):
+        print(row)
+
+    cur.execute('create table if not exists orders (orderID int, tableID int, state text)')
+
+    db.commit()
+
+    db.close()
 
 
 if __name__ == '__main__':
