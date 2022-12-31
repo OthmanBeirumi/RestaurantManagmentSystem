@@ -74,13 +74,11 @@ class Order:
         """"""
         # while True:
 
-
-
-def main():
+def input_data():
     table = int(input("Insert the number of tables: "))
-    seats = [0]*table
+    seats = [0] * table
     for i in range(table):
-        seats[i] = int(input(F"Insert the number of seats in table {i+1}: "))
+        seats[i] = int(input(F"Insert the number of seats in table {i + 1}: "))
     res = RestaurantConfiguration(table, seats)
     res.dic()
     # print(F"Number of tables is {res.tables}. Number of seats are as follows {res.seats}")
@@ -88,23 +86,25 @@ def main():
     menu = MenuConfiguration().menu_config()
     print(F"List of menu items: {menu}")
     waiter = Waiters(5)
-    print(F"The list of waiters is: {waiter.creating_waiters()}")
+    waiters = waiter.creating_waiters()
+    print(F"The list of waiters is: {waiters}")
+    return res, menu, waiters
+
+
+def main():
+
+    inptdata = input_data()
 
     db = sqlite3.connect('restaurant.db')
 
     cur = db.cursor()
-    # cur.execute("drop table seat")
-    #
-    # cur.execute("drop table menu")
-    #
-    # cur.execute("drop table restaurant_tables")
 
     cur.execute('create table if not exists seat (seatID integer, tableID integer)')
     cur.execute("create table if not exists restaurant_tables (tableID integer, orderID integer)")
 
-
-    for i, k in res.data.items():
-        cur.executemany("insert into seat values (?, ?)", [(k, i)])
+    for i, k in inptdata[0].data.items():
+        for m in range(1, k+1):
+            cur.executemany("insert into seat values (?, ?)", [(m, i)])
         cur.executemany("insert into restaurant_tables values (?, ?)", [(i, None)])
 
     for row in cur.execute("select * from seat"):
@@ -115,13 +115,45 @@ def main():
 
     cur.execute('create table if not exists menu (itemID integer, itemPrice integer)')
 
-    for i, k in menu.items():
+    for i, k in inptdata[1].items():
         cur.executemany("insert into menu values (?, ?)", [(i, k)])
     print("****************************")
     for row in cur.execute("select * from menu"):
         print(row)
 
-    cur.execute('create table if not exists orders (orderID int, tableID int, state text)')
+    cur.execute('create table if not exists waiter (waiterID integer, waiterName text, waiterStatus text)')
+
+    for i, k in inptdata[2].items():
+        cur.executemany("insert into waiter values (?, ?, ?)", [(i, k, "Free")])
+    print("****************************")
+    for row in cur.execute("select * from waiter"):
+        print(row)
+
+    # cur.execute('create table if not exists orders (orderID integer, tableID integer, waiterID integer, state text)')
+
+    # ////////////// PLACE ORDER //////////////////
+
+    cur.execute('create table if not exists seat_order (seatID integer, itemID integer, state text)')
+
+    cur.execute("select *` from seat where tableID=:c", {"c": 3})
+    selected_seat = cur.fetchall()
+    print(selected_seat)
+    # cur.execute("insert into seat_order (?, ?, ?)", [("select seatID from seat", "select itemID from menu", "pending")])
+
+    # for i, k in waiters.items():
+    #     cur.executemany("insert into waiter values (?, ?, ?)", [(i, k, "Free")])
+    # print("****************************")
+    # for row in cur.execute("select * from waiter"):
+    #     print(row)
+
+    # ////////////// DELETE TABLES ////////////////
+    cur.execute("drop table seat")
+
+    cur.execute("drop table menu")
+
+    cur.execute("drop table restaurant_tables")
+
+    cur.execute("drop table waiter")
 
     db.commit()
 
