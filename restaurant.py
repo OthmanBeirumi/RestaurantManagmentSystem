@@ -99,12 +99,12 @@ def main():
 
     cur = db.cursor()
 
-    cur.execute('create table if not exists seat (seatID integer, tableID integer)')
+    cur.execute('create table if not exists seat (seatID integer, tableID integer, itemID integer, state text)')
     cur.execute("create table if not exists restaurant_tables (tableID integer, orderID integer)")
 
     for i, k in inptdata[0].data.items():
         for m in range(1, k+1):
-            cur.executemany("insert into seat values (?, ?)", [(m, i)])
+            cur.executemany("insert into seat values (?, ?, ?, ?)", [(m, i, None, None)])
         cur.executemany("insert into restaurant_tables values (?, ?)", [(i, None)])
 
     for row in cur.execute("select * from seat"):
@@ -116,7 +116,7 @@ def main():
     cur.execute('create table if not exists menu (itemID integer, itemPrice integer)')
 
     for i, k in inptdata[1].items():
-        cur.executemany("insert into menu values (?, ?)", [(i, k)])
+        cur.executemany("insert into menu values (?, ?)", [(i.lower(), k)])
     print("****************************")
     for row in cur.execute("select * from menu"):
         print(row)
@@ -132,19 +132,29 @@ def main():
     # cur.execute('create table if not exists orders (orderID integer, tableID integer, waiterID integer, state text)')
 
     # ////////////// PLACE ORDER //////////////////
+    print("**************PLACE ORDER**************")
 
-    cur.execute('create table if not exists seat_order (seatID integer, itemID integer, state text)')
+    item = "water"
+    table3 = 3
+    itemstate = "pending"
 
-    cur.execute("select *` from seat where tableID=:c", {"c": 3})
+    cur.execute("select * from seat where tableID=:c", {"c": table3})
     selected_seat = cur.fetchall()
     print(selected_seat)
-    # cur.execute("insert into seat_order (?, ?, ?)", [("select seatID from seat", "select itemID from menu", "pending")])
 
-    # for i, k in waiters.items():
-    #     cur.executemany("insert into waiter values (?, ?, ?)", [(i, k, "Free")])
-    # print("****************************")
-    # for row in cur.execute("select * from waiter"):
-    #     print(row)
+    cur.execute("select * from menu where itemID=:c", {"c": item.lower()})
+    selected_item = cur.fetchall()
+    print(selected_item)
+
+    for i in range(len(selected_seat)):
+        print(F"selected seats are {selected_seat[i][0]}")
+        cur.execute(F"update seat set itemID=? , state=? where tableID=?", (selected_item[0][0], itemstate, table3))
+    print("**************NEW SEAT TABLE**************")
+
+    cur.execute("select * from seat where tableID=:c", {"c": table3})
+    selected_seat = cur.fetchall()
+    print(selected_seat)
+
 
     # ////////////// DELETE TABLES ////////////////
     cur.execute("drop table seat")
