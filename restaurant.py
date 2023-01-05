@@ -99,7 +99,7 @@ def initialization(cur, inptdata):
         print(row)
 
 
-def order_mode(cur):
+def order_mode(cur, waiter):
     """Place order and updating tables accordingly"""
     print("**************PLACE ORDER**************")
 
@@ -132,7 +132,6 @@ def order_mode(cur):
     cur.execute('create table if not exists orders (orderID integer, tableID integer, waiterID integer, state text)')
     orderno = 1
     order_state = "in_progress"
-    waiter = 2
 
     cur.execute("select * from waiter where waiterStatus=? and waiterID=?", ("Free", waiter))
     selected_waiter = cur.fetchall()
@@ -160,16 +159,60 @@ def order_mode(cur):
     print(selected_waiter_table)
 
 
-def cooking(cur, seatID):
+def cooking(cur, tableID):
     """This method turns the seat state from pending to ready.
     The waiter can pick up the order when it is ready"""
-    cur.execute("update seat set state=? where seatID=?", ("Ready", seatID))
+    cur.execute("update seat set state=? where tableID=?", ("Ready", tableID))
 
 
-def served_customer(cur, seatID):
-    cur.execute("select * from seat where state=?", "Ready")
+def served_customer(cur, tableID, waiter):
+    cur.execute("update seat set state=? where tableID=?", ("Served", tableID))
+    cur.execute("select * from seat where tableID=:c", {"c": tableID})
+    served_seats = cur.fetchall()
+    print(F"served seats are: {served_seats}")
+    for i in range(len(served_seats)):
+        if served_seats[i][3] != 'Served':
+            return None
+    cur.execute("update waiter set waiterStatus=? where waiterID=?", ("Free", waiter))
+    cur.execute("update orders set state=? where tableID=?", ("Completed", tableID))
 
-    cur.execute("update seat set state=? where seatID=?", ("Served", seatID))
+
+def total(cur, tableID):
+    totall = 0
+    cur.execute("select * from seat where tableID=:c", {"c": tableID})
+    served_seats = cur.fetchall()
+
+    for i in range(len(served_seats)):
+        cur.execute("select * from menu where itemID=:c", {"c": served_seats[i][2]})
+        selected_menu = cur.fetchall()
+        totall += selected_menu[0][1]
+    return totall
+
+
+        # if served_seats[i][3] != '':
+        #     cur.execute("update seat set ")
+        # if served_seats[i][3] != 'Served':
+        #     cur.execute("update seat set state=? where waiterID=?", ("Free", waiter))
+        #     return None
+
+    # cur.execute("select * from orders where tableID=:c", {"c": tableID})
+    # completedOrder = cur.fetchall()
+    # if completedOrder[3] != "Completed":
+    #     return "Can't generate the bill now"
+    #
+    # cur.execute("select * from seat where tableID=:c", {"c": tableID})
+    # served_seats = cur.fetchall()
+    # for i in range(len(served_seats)):
+    #     if served_seats[i][3] != 'Served':
+    #         return None
+def completed_orders(cur):
+    cur.execute("select * from orders where state=?", "Completed")
+    orders = cur.fetchall()
+
+
+def in_progress_orders(cur):
+    cur.execute("select * from orders where state=?", "in_progress")
+    orders = cur.fetchall()
 
 
 def delete_tables(cur):
@@ -187,22 +230,28 @@ def delete_tables(cur):
 
 def main():
 
-    # inptdata = input_data()
+    inptdata = input_data()
 
     db = sqlite3.connect('restaurant.db')
 
     cur = db.cursor()
 
-    while True:
-        inptdata = input_data()
-        initialization(cur, inptdata)
-        order_mode(cur)
-        i = input("Please type yes to proceed. otherwise empty space: ")
-        if i == "":
-            break
-
+    waiter = 2
     table = 3
+
+    initialization(cur, inptdata)
+
+    order_mode(cur, waiter)
+
     cooking(cur, table)
+
+    served_customer(cur, table, waiter)
+
+    # completed_orders(cur)
+
+    total1 = total(cur, table)
+
+    print(F"The total bill for table {table} is {total1}")
 
     delete_tables(cur)
 
