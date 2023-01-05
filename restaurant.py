@@ -1,5 +1,6 @@
 import sqlite3
 
+
 class RestaurantConfiguration:
     def __init__(self, tables, seats):
         """Arguments: tables is the number of tables, seats is the number of seats per table"""
@@ -12,28 +13,14 @@ class RestaurantConfiguration:
         for i in range(1, self.tables+1):
             self.data[i] = self.data.get(i, self.seats[i-1])
 
-    # def check(self):
-    #     """This method check if there is a saved configuration in the database
-    #     :return True if there is data
-    #     :return False if there is no data"""
-
-    def write_configuration(self):
-        """Write restaurant configuration in the database"""
-        # if self.check():
-        #     print("You already have data in database")
-        db = sqlite3.connect('restaurant.db')
-        db.execute('create table if not exists configuration (tables integer, seats integer)')
 
 class MenuConfiguration:
-    def __init__(self,
-                 # itemname, itemprice
-                 ):
-        """Arguments: itemname is the name of an item in the menu, item price is the price of this item"""
-        # self.itemname = itemname
-        # self.itemprice = itemprice
+    def __init__(self):
         self.menu = {}
 
     def menu_config(self):
+        """This method take an item and price
+        :return dictionary has items with prices"""
         price = 0
         while True:
             try:
@@ -61,20 +48,8 @@ class Waiters:
         return self.waiters
 
 
-
-class Order:
-    def __init__(self, table, items):
-        """Arguments: """
-        self.table = table
-        self.items = items
-        self.state = "pending"
-        self.order = []
-
-    def table_seats(self):
-        """"""
-        # while True:
-
 def input_data():
+    """Input from the user"""
     table = int(input("Insert the number of tables: "))
     seats = [0] * table
     for i in range(table):
@@ -91,32 +66,26 @@ def input_data():
     return res, menu, waiters
 
 
-def main():
-
-    inptdata = input_data()
-
-    db = sqlite3.connect('restaurant.db')
-
-    cur = db.cursor()
-
+def initialization(cur, inptdata):
+    """Initialize tables in database"""
     cur.execute('create table if not exists seat (seatID integer, tableID integer, itemID integer, state text)')
     cur.execute("create table if not exists restaurant_tables (tableID integer, orderID integer)")
 
     for i, k in inptdata[0].data.items():
-        for m in range(1, k+1):
-            cur.executemany("insert into seat values (?, ?, ?, ?)", [(m, i, None, None)])
-        cur.executemany("insert into restaurant_tables values (?, ?)", [(i, None)])
+        for m in range(1, k + 1):
+            cur.execute("insert into seat values (?, ?, ?, ?)", (m, i, None, None))
+        cur.execute("insert into restaurant_tables values (?, ?)", (i, None))
 
     for row in cur.execute("select * from seat"):
         print(row)
-    print("****************************")
+    print("************* RESTAURANT TABLES ***************")
     for row in cur.execute("select * from restaurant_tables"):
         print(row)
 
     cur.execute('create table if not exists menu (itemID integer, itemPrice integer)')
 
     for i, k in inptdata[1].items():
-        cur.executemany("insert into menu values (?, ?)", [(i.lower(), k)])
+        cur.execute("insert into menu values (?, ?)", (i.lower(), k))
     print("****************************")
     for row in cur.execute("select * from menu"):
         print(row)
@@ -124,39 +93,87 @@ def main():
     cur.execute('create table if not exists waiter (waiterID integer, waiterName text, waiterStatus text)')
 
     for i, k in inptdata[2].items():
-        cur.executemany("insert into waiter values (?, ?, ?)", [(i, k, "Free")])
+        cur.execute("insert into waiter values (?, ?, ?)", (i, k, "Free"))
     print("****************************")
     for row in cur.execute("select * from waiter"):
         print(row)
 
-    # cur.execute('create table if not exists orders (orderID integer, tableID integer, waiterID integer, state text)')
 
-    # ////////////// PLACE ORDER //////////////////
+def order_mode(cur):
+    """Place order and updating tables accordingly"""
     print("**************PLACE ORDER**************")
 
     item = "water"
     table3 = 3
     itemstate = "pending"
 
+    # specifying seats
     cur.execute("select * from seat where tableID=:c", {"c": table3})
     selected_seat = cur.fetchall()
-    print(selected_seat)
+    # print(selected_seat)
 
+    # specifying menu items
     cur.execute("select * from menu where itemID=:c", {"c": item.lower()})
     selected_item = cur.fetchall()
-    print(selected_item)
+    # print(selected_item)
 
+    # insert values
     for i in range(len(selected_seat)):
-        print(F"selected seats are {selected_seat[i][0]}")
+        # print(F"selected seats are {selected_seat[i][0]}")
         cur.execute(F"update seat set itemID=? , state=? where tableID=?", (selected_item[0][0], itemstate, table3))
     print("**************NEW SEAT TABLE**************")
 
+    # printing an updated table - SEAT
     cur.execute("select * from seat where tableID=:c", {"c": table3})
     selected_seat = cur.fetchall()
     print(selected_seat)
 
+    # specifying the order number and the waiter
+    cur.execute('create table if not exists orders (orderID integer, tableID integer, waiterID integer, state text)')
+    orderno = 1
+    order_state = "in_progress"
+    waiter = 2
 
-    # ////////////// DELETE TABLES ////////////////
+    cur.execute("select * from waiter where waiterStatus=? and waiterID=?", ("Free", waiter))
+    selected_waiter = cur.fetchall()
+    print(selected_waiter)
+
+    # creating the order table
+    cur.execute("insert into orders values (?, ?, ?, ?)", (orderno, table3, waiter, order_state))
+
+    # printing an updated table - ORDER
+    cur.execute("select * from orders where tableID=:c", {"c": table3})
+    selected_order = cur.fetchall()
+    print(selected_order)
+
+    # updating restaurant_tables table
+    cur.execute(F"update restaurant_tables set orderID=? where tableID=?", (orderno, table3))
+
+    cur.execute("select * from restaurant_tables")
+    selected_restaurant_tables = cur.fetchall()
+    print(selected_restaurant_tables)
+
+    # updating waiter state
+    cur.execute("update waiter set waiterStatus=? where waiterID=?", ("Busy", waiter))
+    cur.execute("select * from waiter")
+    selected_waiter_table = cur.fetchall()
+    print(selected_waiter_table)
+
+
+def cooking(cur, seatID):
+    """This method turns the seat state from pending to ready.
+    The waiter can pick up the order when it is ready"""
+    cur.execute("update seat set state=? where seatID=?", ("Ready", seatID))
+
+
+def served_customer(cur, seatID):
+    cur.execute("select * from seat where state=?", "Ready")
+
+    cur.execute("update seat set state=? where seatID=?", ("Served", seatID))
+
+
+def delete_tables(cur):
+    """Delete tables and start again"""
     cur.execute("drop table seat")
 
     cur.execute("drop table menu")
@@ -164,6 +181,30 @@ def main():
     cur.execute("drop table restaurant_tables")
 
     cur.execute("drop table waiter")
+
+    cur.execute("drop table orders")
+
+
+def main():
+
+    # inptdata = input_data()
+
+    db = sqlite3.connect('restaurant.db')
+
+    cur = db.cursor()
+
+    while True:
+        inptdata = input_data()
+        initialization(cur, inptdata)
+        order_mode(cur)
+        i = input("Please type yes to proceed. otherwise empty space: ")
+        if i == "":
+            break
+
+    table = 3
+    cooking(cur, table)
+
+    delete_tables(cur)
 
     db.commit()
 
