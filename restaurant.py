@@ -1,4 +1,6 @@
 import sqlite3
+import tkinter as tk
+from tkinter import messagebox
 
 
 class RestaurantConfiguration:
@@ -10,8 +12,8 @@ class RestaurantConfiguration:
 
     def dic(self):
         """This method combines the tables with their corresponding number of seats"""
-        for i in range(1, self.tables+1):
-            self.data[i] = self.data.get(i, self.seats[i-1])
+        for i in range(1, self.tables + 1):
+            self.data[i] = self.data.get(i, self.seats[i - 1])
 
 
 class MenuConfiguration:
@@ -35,6 +37,7 @@ class MenuConfiguration:
             except ValueError:
                 print(F"{price} is not a price")
         return self.menu
+
 
 class Waiters:
     def __init__(self, number):
@@ -188,12 +191,11 @@ def total(cur, tableID):
         totall += selected_menu[0][1]
     return totall
 
-
-        # if served_seats[i][3] != '':
-        #     cur.execute("update seat set ")
-        # if served_seats[i][3] != 'Served':
-        #     cur.execute("update seat set state=? where waiterID=?", ("Free", waiter))
-        #     return None
+    # if served_seats[i][3] != '':
+    #     cur.execute("update seat set ")
+    # if served_seats[i][3] != 'Served':
+    #     cur.execute("update seat set state=? where waiterID=?", ("Free", waiter))
+    #     return None
 
     # cur.execute("select * from orders where tableID=:c", {"c": tableID})
     # completedOrder = cur.fetchall()
@@ -205,8 +207,10 @@ def total(cur, tableID):
     # for i in range(len(served_seats)):
     #     if served_seats[i][3] != 'Served':
     #         return None
+
+
 def completed_orders(cur):
-    cur.execute("select * from orders where state=?", "Completed")
+    cur.execute("select * from orders where state=:c", {"c": "Completed"})
     orders = cur.fetchall()
 
 
@@ -228,36 +232,112 @@ def delete_tables(cur):
     cur.execute("drop table orders")
 
 
+def system():
+    background_color = "#3A7FF6"
+    btn_color = "#294D8B"
+    width = 1366
+    height = 768
+    font = 'Calibri'
+    root = tk.Tk()
+    root.geometry(F"{width}x{height}")
+    root.title("Restaurant Management System")
+
+    canvas = tk.Canvas(root, width=width, height=height, bg=background_color)
+    canvas.grid(columnspan=3, rowspan=3)
+    title = tk.Label(root, text="Welcome to \n Restaurant Management System", font=(font, 25, 'bold'),
+                     fg="White", bg="grey", anchor=tk.W)
+    title.place(anchor='center', x=str(width / 2), y=str(0.1 * height))
+
+    # Restaurant Configuration Button
+    btn_1_label = tk.StringVar(value="Restaurant Configuration")
+    btn_1 = tk.Button(root, textvariable=btn_1_label, height=2, width=25, command=lambda: configure_restaurant(),
+                      font=(font, 12, 'bold'), bg=btn_color, fg="White")
+    btn_1.place(anchor='center', x=str(width / 2), y=str(0.25 * height))
+
+    # Menu Configuration Button
+    btn_2_label = tk.StringVar(value="Menu Configuration")
+    btn_2 = tk.Button(root, textvariable=btn_2_label, height=2, width=25, command=lambda: configure_menu(),
+                      font=(font, 12, 'bold'), bg=btn_color, fg="White")
+    btn_2.place(anchor='center', x=str(width / 2), y=str(0.35 * height))
+
+    # Waiter Configuration Button
+    btn_3_label = tk.StringVar(value="Waiters Configuration")
+    btn_3 = tk.Button(root, textvariable=btn_3_label, height=2, width=25, command=lambda: configure_waiters(),
+                      font=(font, 12, 'bold'), bg=btn_color, fg="White")
+    btn_3.place(anchor='center', x=str(width / 2), y=str(0.45 * height))
+
+    # Past Orders Button
+    btn_4_label = tk.StringVar(value="Past\nOrders")
+    btn_4 = tk.Button(root, textvariable=btn_4_label, height=2, width=10, command=lambda: past_orders(),
+                      font=(font, 12, 'bold'), bg=btn_color, fg="White")
+    btn_4.place(anchor='center', x=str(width*0.95), y=str(0.85 * height))
+
+    # In-Progress Orders Button
+    btn_5_label = tk.StringVar(value="In-Progress\nOrders")
+    btn_5 = tk.Button(root, textvariable=btn_5_label, height=2, width=10, command=lambda: in_progress_orders2(),
+                      font=(font, 12, 'bold'), bg=btn_color, fg="White")
+    btn_5.place(anchor='center', x=str(width * 0.88), y=str(0.85 * height))
+
+    # New Orders Button
+    btn_6_label = tk.StringVar(value="+ New Order")
+    btn_6 = tk.Button(root, textvariable=btn_6_label, height=2, width=10, command=lambda: in_progress_orders2(),
+                      font=(font, 12, 'bold'), bg=btn_color, fg="White")
+    btn_6.place(anchor='center', x=str(width * 0.05), y=str(0.85 * height))
+
+    root.mainloop()
+
+def configure_restaurant():
+    print("restaurant")
+
+
+def configure_menu():
+    print("menu")
+
+
+def configure_waiters():
+    print("waiter")
+    messagebox.showinfo("Warning", "CRASH!!!")
+
+
+def past_orders():
+    print("past orders")
+
+
+def in_progress_orders2():
+    print("In-progress orders")
+
+
 def main():
+    system()
 
-    inptdata = input_data()
-
-    db = sqlite3.connect('restaurant.db')
-
-    cur = db.cursor()
-
-    waiter = 2
-    table = 3
-
-    initialization(cur, inptdata)
-
-    order_mode(cur, waiter)
-
-    cooking(cur, table)
-
-    served_customer(cur, table, waiter)
-
+    # inptdata = input_data()
+    #
+    # db = sqlite3.connect('restaurant.db')
+    #
+    # cur = db.cursor()
+    #
+    # waiter = 2
+    # table = 3
+    #
+    # initialization(cur, inptdata)
+    #
+    # order_mode(cur, waiter)
+    #
+    # cooking(cur, table)
+    #
+    # served_customer(cur, table, waiter)
+    #
     # completed_orders(cur)
-
-    total1 = total(cur, table)
-
-    print(F"The total bill for table {table} is {total1}")
-
-    delete_tables(cur)
-
-    db.commit()
-
-    db.close()
+    #
+    # total1 = total(cur, table)
+    #
+    # print(F"The total bill for table {table} is {total1}")
+    #
+    # delete_tables(cur)
+    #
+    # db.commit()
+    #
+    # db.close()
 
 
 if __name__ == '__main__':
