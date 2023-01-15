@@ -1,5 +1,6 @@
 import sqlite3
 import tkinter as tk
+from tkinter import ttk
 from tkinter import messagebox
 
 
@@ -235,56 +236,214 @@ def delete_tables(cur):
 def system():
     background_color = "#3A7FF6"
     btn_color = "#294D8B"
-    width = 1366
-    height = 768
     font = 'Calibri'
+    boolean = False
     root = tk.Tk()
+    width = root.winfo_screenwidth()
+    height = root.winfo_screenheight()
     root.geometry(F"{width}x{height}")
     root.title("Restaurant Management System")
 
-    canvas = tk.Canvas(root, width=width, height=height, bg=background_color)
-    canvas.grid(columnspan=3, rowspan=3)
-    title = tk.Label(root, text="Welcome to \n Restaurant Management System", font=(font, 25, 'bold'),
-                     fg="White", bg="grey", anchor=tk.W)
-    title.place(anchor='center', x=str(width / 2), y=str(0.1 * height))
+    # create a frame widgets
+    frame1 = tk.Frame(root, width=width, height=height, bg=background_color)
+    frame2 = tk.Frame(root)
+    frame3 = tk.Frame(root)
 
-    # Restaurant Configuration Button
-    btn_1_label = tk.StringVar(value="Restaurant Configuration")
-    btn_1 = tk.Button(root, textvariable=btn_1_label, height=2, width=25, command=lambda: configure_restaurant(),
-                      font=(font, 12, 'bold'), bg=btn_color, fg="White")
-    btn_1.place(anchor='center', x=str(width / 2), y=str(0.25 * height))
+    def clear_widgets(framee):
+        # select all frame widgets and delete them
+        for widget in framee.winfo_children():
+            widget.destroy()
 
-    # Menu Configuration Button
-    btn_2_label = tk.StringVar(value="Menu Configuration")
-    btn_2 = tk.Button(root, textvariable=btn_2_label, height=2, width=25, command=lambda: configure_menu(),
-                      font=(font, 12, 'bold'), bg=btn_color, fg="White")
-    btn_2.place(anchor='center', x=str(width / 2), y=str(0.35 * height))
+    def load_home_page():
+        clear_widgets(frame2)
+        clear_widgets(frame3)
 
-    # Waiter Configuration Button
-    btn_3_label = tk.StringVar(value="Waiters Configuration")
-    btn_3 = tk.Button(root, textvariable=btn_3_label, height=2, width=25, command=lambda: configure_waiters(),
-                      font=(font, 12, 'bold'), bg=btn_color, fg="White")
-    btn_3.place(anchor='center', x=str(width / 2), y=str(0.45 * height))
+        # stack frame 2 above frame 1
+        frame1.tkraise()
 
-    # Past Orders Button
-    btn_4_label = tk.StringVar(value="Past\nOrders")
-    btn_4 = tk.Button(root, textvariable=btn_4_label, height=2, width=10, command=lambda: past_orders(),
-                      font=(font, 12, 'bold'), bg=btn_color, fg="White")
-    btn_4.place(anchor='center', x=str(width*0.95), y=str(0.85 * height))
+        title = tk.Label(root, text="Welcome to \n Restaurant Management System", font=(font, 25, 'bold'),
+                         bg=background_color, fg="White", anchor=tk.W)
+        title.place(anchor='center', x=str(width * 0.5), y=str(0.1 * height))
 
-    # In-Progress Orders Button
-    btn_5_label = tk.StringVar(value="In-Progress\nOrders")
-    btn_5 = tk.Button(root, textvariable=btn_5_label, height=2, width=10, command=lambda: in_progress_orders2(),
-                      font=(font, 12, 'bold'), bg=btn_color, fg="White")
-    btn_5.place(anchor='center', x=str(width * 0.88), y=str(0.85 * height))
+        tk.Label(frame1, text="This desktop app intends to help managers to monitor the restaurants properly",
+                 font=(font, 12), bg=background_color, fg="White").place(anchor='center', x=str(width / 2),
+                                                                         y=str(0.25 * height))
 
-    # New Orders Button
-    btn_6_label = tk.StringVar(value="+ New Order")
-    btn_6 = tk.Button(root, textvariable=btn_6_label, height=2, width=10, command=lambda: in_progress_orders2(),
-                      font=(font, 12, 'bold'), bg=btn_color, fg="White")
-    btn_6.place(anchor='center', x=str(width * 0.05), y=str(0.85 * height))
+        # Restaurant Configuration Button
+        btn_1_label = tk.StringVar(value="Restaurant Configuration")
+        btn_1 = tk.Button(frame1, textvariable=btn_1_label, height=2, width=25,
+                          command=lambda: load_restaurant_configuration_page(),
+                          font=(font, 12, 'bold'), bg=btn_color, fg="White", cursor="hand2")
+        btn_1.place(anchor='center', x=str(width / 2), y=str(0.35 * height))
+
+        # Menu Configuration Button
+        btn_2_label = tk.StringVar(value="Menu Configuration")
+        btn_2 = tk.Button(frame1, textvariable=btn_2_label, height=2, width=25, command=lambda: configure_menu(),
+                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
+        btn_2.place(anchor='center', x=str(width / 2), y=str(0.45 * height))
+
+        # Waiter Configuration Button
+        btn_3_label = tk.StringVar(value="Waiters Configuration")
+        btn_3 = tk.Button(frame1, textvariable=btn_3_label, height=2, width=25, command=lambda: configure_waiters(),
+                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
+        btn_3.place(anchor='center', x=str(width / 2), y=str(0.55 * height))
+
+        # Past Orders Button
+        btn_4_label = tk.StringVar(value="Past\nOrders")
+        btn_4 = tk.Button(frame1, textvariable=btn_4_label, height=2, width=10, command=lambda: load_past_orders(),
+                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
+        btn_4.place(anchor='center', x=str(width * 0.95), y=str(0.85 * height))
+
+        # In-Progress Orders Button
+        btn_5_label = tk.StringVar(value="In-Progress\nOrders")
+        btn_5 = tk.Button(frame1, textvariable=btn_5_label, height=2, width=10, command=lambda: in_progress_orders2(),
+                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
+        btn_5.place(anchor='center', x=str(width * 0.88), y=str(0.85 * height))
+
+        # New Orders Button
+        btn_6_label = tk.StringVar(value="+ New Order")
+        btn_6 = tk.Button(frame1, textvariable=btn_6_label, height=2, width=10, command=lambda: in_progress_orders2(),
+                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
+        btn_6.place(anchor='center', x=str(width * 0.05), y=str(0.85 * height))
+
+    def load_past_orders():
+        clear_widgets(frame1)
+
+        # stack frame 2 above frame 1
+        frame2.tkraise()
+
+        # recipe title widget
+        tk.Label(
+            frame2,
+            text="Past Orders",
+            # bg=background_color,
+            fg="black",
+            font=("Ubuntu", 20)
+        ).pack(pady=25, padx=25)
+
+        # recipe ingredients widgets
+        if boolean:
+            for i in range(1, 15):
+                tk.Label(
+                    frame2,
+                    text=i,
+                    bg="#28393a",
+                    fg="white",
+                    font=(font, 12),
+                ).pack(fill="both", padx=25)
+                # ).place(anchor='center', x=str(width * 0.3), y=str(0.03*i * height))
+
+
+        style = ttk.Style()
+        style.configure("Treeview",
+                        foreground="black",
+                        rowheight=40,
+                        fieldbackground="white"
+                        )
+        style.map('Treeview',
+                  background=[('selected', 'lightblue')])
+        # rightframe
+
+        CENTER = 'center'
+
+        past_orders_table = tk.Frame(frame2, width=400, height=700)
+        past_orders_table.place(anchor='center', x=str(width * 0.15), y=str(0.3 * height))
+
+        ###########  Creating table #############
+        my_tree = ttk.Treeview(past_orders_table)
+        my_tree['columns'] = ("ordno", "table", "waiter", "total")
+
+        ############ creating  for table ################
+        horizontal_bar = ttk.Scrollbar(past_orders_table, orient="horizontal")
+        horizontal_bar.configure(command=my_tree.xview)
+        my_tree.configure(xscrollcommand=horizontal_bar.set)
+        # horizontal_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
+
+        vertical_bar = ttk.Scrollbar(past_orders_table, orient="vertical")
+        vertical_bar.configure(command=my_tree.yview)
+        my_tree.configure(yscrollcommand=vertical_bar.set)
+        # vertical_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
+
+        # defining columns for table
+        my_tree.column("#0", width=0, minwidth=0)
+        my_tree.column("ordno", anchor=CENTER, width=80, minwidth=25)
+        my_tree.column("table", anchor=CENTER, width=60, minwidth=25)
+        my_tree.column("waiter", anchor=CENTER, width=60, minwidth=25)
+        my_tree.column("total", anchor=CENTER, width=50, minwidth=25)
+
+        # defining  headings for table
+        my_tree.heading("ordno", text="Order No", anchor=CENTER)
+        my_tree.heading("table", text="Table", anchor=CENTER)
+        my_tree.heading("waiter", text="Waiter", anchor=CENTER)
+        my_tree.heading("total", text="Total", anchor=CENTER)
+
+        my_tree.place(anchor='center', x=str(width * 0.15), y=str(0.5 * height))
+
+        # Order Details Button
+        btn_7_label = tk.StringVar(value="Order\nDetails")
+        btn_7 = tk.Button(frame2, textvariable=btn_7_label, height=2, width=10, command=lambda: in_progress_orders2(),
+                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
+        btn_7.place(anchor='center', x=str(width * 0.10), y=str(0.85 * height))
+
+        # Delete Order Button
+        btn_8_label = tk.StringVar(value="Delete\nOrder")
+        btn_8 = tk.Button(frame2, textvariable=btn_8_label, height=2, width=10, command=lambda: in_progress_orders2(),
+                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
+        btn_8.place(anchor='center', x=str(width * 0.18), y=str(0.85 * height))
+
+        # Back Button
+        btn_9_label = tk.StringVar(value="Back")
+        btn_9 = tk.Button(frame2, textvariable=btn_9_label, height=2, width=10, command=lambda: load_home_page(),
+                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
+        btn_9.place(anchor='center', x=str(width * 0.95), y=str(0.85 * height))
+
+    def load_restaurant_configuration_page():
+        clear_widgets(frame1)
+
+        # stack frame 3 above frame 1
+        frame3.tkraise()
+
+        tk.Label(frame3, text="Restaurant Configuration", fg="black", font=(font, 20)).pack(pady=25, padx=25)
+
+        tk.Label(frame3, text="Number of Tables", font=(font, 12, 'bold'), fg="Black")\
+            .place(anchor='center', x=str(width * 0.1), y=str(0.15 * height))
+
+        orderno = tk.StringVar()
+
+        # ordlbl = tk.Label(leftframe, font=('Calibri', 16, 'bold'), text="Order No.", fg="black", bd=5, anchor=W).grid(
+        #     row=1,
+        #     column=0)
+        tk.Entry(frame3, font=(font, 16, 'bold'), bd=2, insertwidth=2, justify='left', textvariable=orderno,
+                 state="normal")\
+            .place(anchor='e', x=str(width * 0.22), y=str(0.20 * height))
+
+        # Submit Button
+        btn_11_label = tk.StringVar(value="test")
+        btn_11 = tk.Button(frame3, textvariable=btn_11_label, height=2, width=10, command=lambda: test(orderno),
+                           font=(font, 12, 'bold'), bg=btn_color, fg="White")
+        btn_11.place(anchor='e', x=str(width * 0.22), y=str(0.30 * height))
+
+        # Back Button
+        btn_10_label = tk.StringVar(value="Back")
+        btn_10 = tk.Button(frame3, textvariable=btn_10_label, height=2, width=10, command=lambda: load_home_page(),
+                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
+        btn_10.place(anchor='center', x=str(width * 0.95), y=str(0.85 * height))
+
+    # place frame widgets in window
+    for frame in (frame1, frame2, frame3):
+        frame.grid(row=0, column=0, sticky="nesw")
+
+    load_home_page()
+
+    # load_past_orders()
 
     root.mainloop()
+
+def test(x):
+    x = x.get()
+    x = float(x)
+    print(x)
+
 
 def configure_restaurant():
     print("restaurant")
