@@ -213,6 +213,7 @@ def total(cur, tableID):
 def completed_orders(cur):
     cur.execute("select * from orders where state=:c", {"c": "Completed"})
     orders = cur.fetchall()
+    print(orders)
 
 
 def in_progress_orders(cur):
@@ -233,6 +234,184 @@ def delete_tables(cur):
     cur.execute("drop table orders")
 
 
+class Constants:
+    background_color = "#3A7FF6"
+    btn_color = "#294D8B"
+    font = 'Calibri'
+
+
+class HomeScreen(tk.Frame):
+
+    def __init__(self, root, *args, **kwargs):
+        super().__init__(root, *args, **kwargs)
+        width = kwargs['width']
+        height = kwargs['height']
+
+        self.root = root
+
+        title = tk.Label(self, text="Welcome to \n Restaurant Management System", font=(Constants.font, 25, 'bold'),
+                         bg=Constants.background_color, fg="White", anchor=tk.W)
+        title.place(anchor='center', x=str(width * 0.5), y=str(0.1 * height))
+
+        tk.Label(self, text="This desktop app intends to help managers to monitor the restaurants properly",
+                 font=(Constants.font, 12), bg=Constants.background_color, fg="White").place(anchor='center',
+                 x=str(width / 2), y=str(0.25 * height))
+
+        # Restaurant Configuration Button
+        btn_1 = tk.Button(self, text="Restaurant Configuration", height=2, width=25,
+            command=self.load_restaurant_configuration_page, font=(Constants.font, 12, 'bold'), bg=Constants.btn_color,
+            fg="White", cursor="hand2")
+        btn_1.place(anchor='center', x=str(width / 2), y=str(0.35 * height))
+
+        # Menu Configuration Button
+        btn_2 = tk.Button(self, text="Menu Configuration", height=2, width=25, command=configure_menu,
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_2.place(anchor='center', x=str(width / 2), y=str(0.45 * height))
+
+        # Waiter Configuration Button
+        btn_3 = tk.Button(self, text="Waiters Configuration", height=2, width=25, command=lambda: configure_waiters(),
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_3.place(anchor='center', x=str(width / 2), y=str(0.55 * height))
+
+        # Past Orders Button
+        btn_4 = tk.Button(self, text="Past\nOrders", height=2, width=10, command=self.past_orders,
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_4.place(anchor='center', x=str(width * 0.95), y=str(0.85 * height))
+
+        # In-Progress Orders Button
+        btn_5 = tk.Button(self, text="In-Progress\nOrders", height=2, width=10, command=lambda: in_progress_orders2(),
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_5.place(anchor='center', x=str(width * 0.88), y=str(0.85 * height))
+
+        # New Orders Button
+        btn_6 = tk.Button(self, text="+ New Order", height=2, width=10, command=lambda: in_progress_orders2(),
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_6.place(anchor='center', x=str(width * 0.05), y=str(0.85 * height))
+
+    def load_restaurant_configuration_page(self):
+        print('load_restaurant_configuration_page')
+        self.root.frame3.tkraise()
+
+    def past_orders(self):
+        cur = self.root.db.cursor()
+        completed_orders(cur)
+
+
+class RestaurantConfigScreen(tk.Frame):
+
+    def __init__(self, root, *args, **kwargs):
+        super().__init__(root, *args, **kwargs)
+        self.root = root
+
+        width = kwargs['width']
+        height = kwargs['height']
+
+        tk.Label(self, text="Restaurant Configuration", fg="black", font=(Constants.font, 20)).pack(pady=25, padx=25)
+
+        tk.Label(self, text="Number of Tables", font=(Constants.font, 12, 'bold'), fg="Black")\
+            .place(anchor='center', x=str(width * 0.1), y=str(0.15 * height))
+
+        self.tables = tk.StringVar()
+
+        self.table_entry = tk.Entry(self, font=(Constants.font, 16, 'bold'), bd=2, insertwidth=2, justify='left',
+                                    textvariable=self.tables, state="normal")
+        self.table_entry.place(anchor='e', x=str(width * 0.22), y=str(0.20 * height))
+
+        # Submit Button
+        btn_11 = tk.Button(self, text="Add", height=2, width=10, command=self.add_table,
+                           font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_11.place(anchor='e', x=str(width * 0.22), y=str(0.30 * height))
+
+        # Back Button
+        btn_10 = tk.Button(self, text="Back", height=2, width=10, command=self.back_to_home,
+                           font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_10.place(anchor='center', x=str(width * 0.95), y=str(0.85 * height))
+
+    def back_to_home(self):
+        self.root.frame1.tkraise()
+
+    def add_table(self):
+        print(F"Table: {self.tables.get()}")
+        test(self.tables)
+        self.table_entry["state"] = "disabled"
+
+
+def test(x):
+    try:
+        x = x.get()
+        if not x:
+            messagebox.showinfo("Warning", "Please insert the missing data !")
+            return
+        x = int(x)
+    except ValueError:
+        messagebox.showinfo("Warning", "Please provide an integer number !")
+
+
+# class RestaurantConfigScreen(tk.Frame):
+#
+#     def __init__(self, root, *args, **kwargs):
+#         super().__init__(root, *args, **kwargs)
+#         self.root = root
+#
+#         width = kwargs['width']
+#         height = kwargs['height']
+#
+#         tk.Label(self, text="Restaurant Configuration", fg="black", font=(Constants.font, 20)).pack(pady=25, padx=25)
+#
+#         tk.Label(self, text="Number of Tables", font=(Constants.font, 12, 'bold'), fg="Black")\
+#             .place(anchor='center', x=str(width * 0.1), y=str(0.15 * height))
+#
+#         self.tables = tk.StringVar()
+#
+#         self.table_entry = tk.Entry(self, font=(Constants.font, 16, 'bold'), bd=2, insertwidth=2, justify='left',
+#                                     textvariable=self.tables, state="normal")
+#         self.table_entry.place(anchor='e', x=str(width * 0.22), y=str(0.20 * height))
+#
+#         # Submit Button
+#         btn_11 = tk.Button(self, text="Add", height=2, width=10, command=self.add_table,
+#                            font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+#         btn_11.place(anchor='e', x=str(width * 0.22), y=str(0.30 * height))
+#
+#         # Back Button
+#         btn_10 = tk.Button(self, text="Back", height=2, width=10, command=self.back_to_home,
+#                            font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+#         btn_10.place(anchor='center', x=str(width * 0.95), y=str(0.85 * height))
+#
+#     def back_to_home(self):
+#         self.root.frame1.tkraise()
+#
+#     def add_table(self):
+#         print(F"Table: {self.tables.get()}")
+#         test(self.tables)
+#         self.table_entry["state"] = "disabled"
+
+
+class RootWindow(tk.Tk):
+
+    def __init__(self, db):
+        super().__init__()
+        self.db = db
+
+        width = self.winfo_screenwidth()
+        height = self.winfo_screenheight()
+        self.geometry(F"{width}x{height}")
+        self.title("Restaurant Management System")
+
+        # create a frame widgets
+        self.frame1 = HomeScreen(self, width=width, height=height, bg=Constants.background_color)
+        self.frame2 = tk.Frame(self)
+        self.frame3 = RestaurantConfigScreen(self, width=width, height=height, bg=Constants.background_color)
+
+        # place frame widgets in window
+        for frame in (self.frame1, self.frame2, self.frame3):
+            frame.grid(row=0, column=0, sticky="nesw")
+
+        self.frame1.tkraise()
+#        load_home_page()
+
+        # load_past_orders()
+
+
 def system():
     background_color = "#3A7FF6"
     btn_color = "#294D8B"
@@ -245,9 +424,9 @@ def system():
     root.title("Restaurant Management System")
 
     # create a frame widgets
-    frame1 = tk.Frame(root, width=width, height=height, bg=background_color)
+    frame1 = HomeScreen(root, width=width, height=height, bg=background_color)
     frame2 = tk.Frame(root)
-    frame3 = tk.Frame(root)
+    frame3 = RestaurantConfigScreen(root, width=width, height=height, bg=background_color)
 
     def clear_widgets(framee):
         # select all frame widgets and delete them
@@ -255,11 +434,11 @@ def system():
             widget.destroy()
 
     def load_home_page():
-        clear_widgets(frame2)
-        clear_widgets(frame3)
 
         # stack frame 2 above frame 1
         frame1.tkraise()
+
+        return
 
         title = tk.Label(root, text="Welcome to \n Restaurant Management System", font=(font, 25, 'bold'),
                          bg=background_color, fg="White", anchor=tk.W)
@@ -272,13 +451,13 @@ def system():
         # Restaurant Configuration Button
         btn_1_label = tk.StringVar(value="Restaurant Configuration")
         btn_1 = tk.Button(frame1, textvariable=btn_1_label, height=2, width=25,
-                          command=lambda: load_restaurant_configuration_page(),
+                          command=load_restaurant_configuration_page,
                           font=(font, 12, 'bold'), bg=btn_color, fg="White", cursor="hand2")
         btn_1.place(anchor='center', x=str(width / 2), y=str(0.35 * height))
 
         # Menu Configuration Button
         btn_2_label = tk.StringVar(value="Menu Configuration")
-        btn_2 = tk.Button(frame1, textvariable=btn_2_label, height=2, width=25, command=lambda: configure_menu(),
+        btn_2 = tk.Button(frame1, textvariable=btn_2_label, height=2, width=25, command=configure_menu,
                           font=(font, 12, 'bold'), bg=btn_color, fg="White")
         btn_2.place(anchor='center', x=str(width / 2), y=str(0.45 * height))
 
@@ -398,28 +577,29 @@ def system():
         btn_9.place(anchor='center', x=str(width * 0.95), y=str(0.85 * height))
 
     def load_restaurant_configuration_page():
-        clear_widgets(frame1)
+#        clear_widgets(frame1)
 
         # stack frame 3 above frame 1
         frame3.tkraise()
+
+        return
 
         tk.Label(frame3, text="Restaurant Configuration", fg="black", font=(font, 20)).pack(pady=25, padx=25)
 
         tk.Label(frame3, text="Number of Tables", font=(font, 12, 'bold'), fg="Black")\
             .place(anchor='center', x=str(width * 0.1), y=str(0.15 * height))
 
-        orderno = tk.StringVar()
+        tables = tk.StringVar()
 
-        # ordlbl = tk.Label(leftframe, font=('Calibri', 16, 'bold'), text="Order No.", fg="black", bd=5, anchor=W).grid(
-        #     row=1,
-        #     column=0)
-        tk.Entry(frame3, font=(font, 16, 'bold'), bd=2, insertwidth=2, justify='left', textvariable=orderno,
-                 state="normal")\
-            .place(anchor='e', x=str(width * 0.22), y=str(0.20 * height))
+        global entry_state
+        entry_state = "normal"
+
+        tk.Entry(frame3, font=(font, 16, 'bold'), bd=2, insertwidth=2, justify='left', textvariable=tables,
+                 state=entry_state).place(anchor='e', x=str(width * 0.22), y=str(0.20 * height))
 
         # Submit Button
-        btn_11_label = tk.StringVar(value="test")
-        btn_11 = tk.Button(frame3, textvariable=btn_11_label, height=2, width=10, command=lambda: test(orderno),
+        btn_11_label = tk.StringVar(value="Add")
+        btn_11 = tk.Button(frame3, textvariable=btn_11_label, height=2, width=10, command=lambda: test(tables),
                            font=(font, 12, 'bold'), bg=btn_color, fg="White")
         btn_11.place(anchor='e', x=str(width * 0.22), y=str(0.30 * height))
 
@@ -428,6 +608,16 @@ def system():
         btn_10 = tk.Button(frame3, textvariable=btn_10_label, height=2, width=10, command=lambda: load_home_page(),
                           font=(font, 12, 'bold'), bg=btn_color, fg="White")
         btn_10.place(anchor='center', x=str(width * 0.95), y=str(0.85 * height))
+
+        def test(x):
+            try:
+                x = x.get()
+                if not x:
+                    messagebox.showinfo("Warning", "Please insert the missing data !")
+                    return
+                x = int(x)
+            except ValueError:
+                messagebox.showinfo("Warning", "Please provide an integer number !")
 
     # place frame widgets in window
     for frame in (frame1, frame2, frame3):
@@ -438,11 +628,6 @@ def system():
     # load_past_orders()
 
     root.mainloop()
-
-def test(x):
-    x = x.get()
-    x = float(x)
-    print(x)
 
 
 def configure_restaurant():
@@ -465,13 +650,38 @@ def past_orders():
 def in_progress_orders2():
     print("In-progress orders")
 
+def test_data(db):
+    cur = db.cursor()
+
+    inptdata = input_data()
+    waiter = 2
+    table = 3
+
+    initialization(cur, inptdata)
+
+    order_mode(cur, waiter)
+
+    cooking(cur, table)
+
+    served_customer(cur, table, waiter)
+
+    db.commit()
+
+    # delete_tables(cur)
 
 def main():
-    system()
+    db = sqlite3.connect('restaurant.db')
+    test_data(db)
+    root = RootWindow(db)
+    root.mainloop()
+
+    db.close()
+
+
+#    system()
 
     # inptdata = input_data()
     #
-    # db = sqlite3.connect('restaurant.db')
     #
     # cur = db.cursor()
     #
