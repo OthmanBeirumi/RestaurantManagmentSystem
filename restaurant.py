@@ -295,6 +295,7 @@ class HomeScreen(tk.Frame):
     def past_orders(self):
         cur = self.root.db.cursor()
         completed_orders(cur)
+        self.root.frame4.tkraise()
 
 
 class RestaurantConfigScreen(tk.Frame):
@@ -347,43 +348,105 @@ def test(x):
         messagebox.showinfo("Warning", "Please provide an integer number !")
 
 
-# class RestaurantConfigScreen(tk.Frame):
-#
-#     def __init__(self, root, *args, **kwargs):
-#         super().__init__(root, *args, **kwargs)
-#         self.root = root
-#
-#         width = kwargs['width']
-#         height = kwargs['height']
-#
-#         tk.Label(self, text="Restaurant Configuration", fg="black", font=(Constants.font, 20)).pack(pady=25, padx=25)
-#
-#         tk.Label(self, text="Number of Tables", font=(Constants.font, 12, 'bold'), fg="Black")\
-#             .place(anchor='center', x=str(width * 0.1), y=str(0.15 * height))
-#
-#         self.tables = tk.StringVar()
-#
-#         self.table_entry = tk.Entry(self, font=(Constants.font, 16, 'bold'), bd=2, insertwidth=2, justify='left',
-#                                     textvariable=self.tables, state="normal")
-#         self.table_entry.place(anchor='e', x=str(width * 0.22), y=str(0.20 * height))
-#
-#         # Submit Button
-#         btn_11 = tk.Button(self, text="Add", height=2, width=10, command=self.add_table,
-#                            font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
-#         btn_11.place(anchor='e', x=str(width * 0.22), y=str(0.30 * height))
-#
-#         # Back Button
-#         btn_10 = tk.Button(self, text="Back", height=2, width=10, command=self.back_to_home,
-#                            font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
-#         btn_10.place(anchor='center', x=str(width * 0.95), y=str(0.85 * height))
-#
-#     def back_to_home(self):
-#         self.root.frame1.tkraise()
-#
-#     def add_table(self):
-#         print(F"Table: {self.tables.get()}")
-#         test(self.tables)
-#         self.table_entry["state"] = "disabled"
+class PastOrdersScreen(tk.Frame):
+
+    def __init__(self, root, *args, **kwargs):
+        super().__init__(root, *args, **kwargs)
+        self.root = root
+
+        width = kwargs['width']
+        height = kwargs['height']
+
+        tk.Label(
+            self,
+            text="Past Orders",
+            # bg=background_color,
+            fg="black",
+            font=("Ubuntu", 20)
+        ).pack(pady=25, padx=25)
+
+        # recipe ingredients widgets
+        if True:
+            for i in range(1, 15):
+                tk.Label(
+                    self,
+                    text=i,
+                    bg="#28393a",
+                    fg="white",
+                    font=(Constants.font, 12),
+                ).pack(fill="both", padx=25)
+                # ).place(anchor='center', x=str(width * 0.3), y=str(0.03*i * height))
+
+        style = ttk.Style()
+        style.configure("Treeview",
+                        foreground="black",
+                        rowheight=40,
+                        fieldbackground="white"
+                        )
+        style.map('Treeview',
+                  background=[('selected', 'lightblue')])
+        # rightframe
+
+        CENTER = 'center'
+
+        past_orders_table = tk.Frame(self, width=400, height=700)
+        past_orders_table.place(anchor='center', x=str(width * 0.15), y=str(0.3 * height))
+
+        ###########  Creating table #############
+        my_tree = ttk.Treeview(past_orders_table)
+        my_tree['columns'] = ("ordno", "table", "waiter", "total")
+
+        ############ creating  for table ################
+        horizontal_bar = ttk.Scrollbar(past_orders_table, orient="horizontal")
+        horizontal_bar.configure(command=my_tree.xview)
+        my_tree.configure(xscrollcommand=horizontal_bar.set)
+        # horizontal_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
+
+        vertical_bar = ttk.Scrollbar(past_orders_table, orient="vertical")
+        vertical_bar.configure(command=my_tree.yview)
+        my_tree.configure(yscrollcommand=vertical_bar.set)
+        # vertical_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
+
+        # defining columns for table
+        my_tree.column("#0", width=0, minwidth=0)
+        my_tree.column("ordno", anchor=CENTER, width=80, minwidth=25)
+        my_tree.column("table", anchor=CENTER, width=60, minwidth=25)
+        my_tree.column("waiter", anchor=CENTER, width=60, minwidth=25)
+        my_tree.column("total", anchor=CENTER, width=50, minwidth=25)
+
+        # defining  headings for table
+        my_tree.heading("ordno", text="Order No", anchor=CENTER)
+        my_tree.heading("table", text="Table", anchor=CENTER)
+        my_tree.heading("waiter", text="Waiter", anchor=CENTER)
+        my_tree.heading("total", text="Total", anchor=CENTER)
+
+        my_tree.place(anchor='center', x=str(width * 0.15), y=str(0.5 * height))
+
+        # Order Details Button
+        btn_7_label = tk.StringVar(value="Order\nDetails")
+        btn_7 = tk.Button(self, textvariable=btn_7_label, height=2, width=10, command=lambda: in_progress_orders2(),
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_7.place(anchor='center', x=str(width * 0.10), y=str(0.85 * height))
+
+        # Delete Order Button
+        btn_8_label = tk.StringVar(value="Delete\nOrder")
+        btn_8 = tk.Button(self, textvariable=btn_8_label, height=2, width=10, command=lambda: in_progress_orders2(),
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_8.place(anchor='center', x=str(width * 0.18), y=str(0.85 * height))
+
+        # Back Button
+        btn_9_label = tk.StringVar(value="Back")
+        btn_9 = tk.Button(self, textvariable=btn_9_label, height=2, width=10, command=self.back_to_home,
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_9.place(anchor='center', x=str(width * 0.95), y=str(0.85 * height))
+
+    def back_to_home(self):
+        self.root.frame1.tkraise()
+
+    def add_table(self):
+        print(F"Table: {self.tables.get()}")
+        # test(self.tables)
+        # self.table_entry["state"] = "disabled"
 
 
 class RootWindow(tk.Tk):
@@ -401,9 +464,10 @@ class RootWindow(tk.Tk):
         self.frame1 = HomeScreen(self, width=width, height=height, bg=Constants.background_color)
         self.frame2 = tk.Frame(self)
         self.frame3 = RestaurantConfigScreen(self, width=width, height=height, bg=Constants.background_color)
+        self.frame4 = PastOrdersScreen(self, width=width, height=height, bg=Constants.background_color)
 
         # place frame widgets in window
-        for frame in (self.frame1, self.frame2, self.frame3):
+        for frame in (self.frame1, self.frame2, self.frame3, self.frame4):
             frame.grid(row=0, column=0, sticky="nesw")
 
         self.frame1.tkraise()
@@ -416,7 +480,6 @@ def system():
     background_color = "#3A7FF6"
     btn_color = "#294D8B"
     font = 'Calibri'
-    boolean = False
     root = tk.Tk()
     width = root.winfo_screenwidth()
     height = root.winfo_screenheight()
@@ -501,7 +564,7 @@ def system():
         ).pack(pady=25, padx=25)
 
         # recipe ingredients widgets
-        if boolean:
+        if True:
             for i in range(1, 15):
                 tk.Label(
                     frame2,
@@ -671,7 +734,7 @@ def test_data(db):
 
 def main():
     db = sqlite3.connect('restaurant.db')
-    test_data(db)
+    # test_data(db)
     root = RootWindow(db)
     root.mainloop()
 
