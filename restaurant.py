@@ -86,7 +86,7 @@ def initialization(cur, inptdata):
     for row in cur.execute("select * from restaurant_tables"):
         print(row)
 
-    cur.execute('create table if not exists menu (itemID integer, itemPrice integer)')
+    cur.execute('create table if not exists menu (itemID text, itemPrice integer)')
 
     for i, k in inptdata[1].items():
         cur.execute("insert into menu values (?, ?)", (i.lower(), k))
@@ -218,9 +218,6 @@ def completed_orders(cur):
         messagebox.showinfo("Warning", "There is no past orders !")
         return None
 
-    # orders = cur.fetchall()
-    # return orders
-
 
 def in_progress_orders(cur):
     cur.execute("select * from orders where state=?", "in_progress")
@@ -272,7 +269,7 @@ class HomeScreen(tk.Frame):
         btn_1.place(anchor='center', x=str(width / 2), y=str(0.35 * height))
 
         # Menu Configuration Button
-        btn_2 = tk.Button(self, text="Menu Configuration", height=2, width=25, command=configure_menu,
+        btn_2 = tk.Button(self, text="Menu Configuration", height=2, width=25, command=self.load_menu_config,
                           font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
         btn_2.place(anchor='center', x=str(width / 2), y=str(0.45 * height))
 
@@ -305,6 +302,9 @@ class HomeScreen(tk.Frame):
         if not x:
             return
         self.root.frame4.tkraise()
+
+    def load_menu_config(self):
+        self.root.frame2.tkraise()
 
 
 class RestaurantConfigScreen(tk.Frame):
@@ -370,7 +370,7 @@ class RestaurantConfigScreen(tk.Frame):
         self.root.frame1.tkraise()
 
     def add_table(self):
-        self.result = test(self.tables)
+        self.result = test(self.tables, "int")
         if self.result:
             self.add_seats()
             self.table_entry["state"] = "disabled"
@@ -379,7 +379,7 @@ class RestaurantConfigScreen(tk.Frame):
     def add_table_seats(self):
         for i in range(1, self.result + 1):
             get_seat = self.seats[i - 1]
-            test_seat = test(get_seat)
+            test_seat = test(get_seat, "int")
             if test_seat is None:
                 return
             self.tested_seats[i] = self.tested_seats.get(i, test_seat)
@@ -420,30 +420,36 @@ class RestaurantConfigScreen(tk.Frame):
         #     widget.destroy()
 
 
-def test(x):
+def test(x, cond):
     try:
         x = x.get()
         if not x:
             messagebox.showinfo("Warning", "Please insert the missing data !")
             return
-        x = int(x)
-        return x
+        if cond == "int":
+            x = int(x)
+            return x
+        if cond == "float":
+            x = float(x)
+            return x
+        if cond == "str":
+            x = x.lower()
+            return x
     except ValueError:
         messagebox.showinfo("Warning", "Please provide an integer number !")
-
 
 class PastOrdersScreen(tk.Frame):
 
     def __init__(self, root, *args, **kwargs):
         super().__init__(root, *args, **kwargs)
         self.root = root
-
         self.width = kwargs['width']
         self.height = kwargs['height']
         self.cur = self.root.db.cursor()
         tk.Label(self, text="Past Orders", bg=Constants.background_color, fg="black", font=("Ubuntu", 20))\
             .pack(pady=25, padx=25)
 
+        #Tree
         style = ttk.Style()
         style.configure("Treeview",
                         foreground="black",
@@ -506,12 +512,12 @@ class PastOrdersScreen(tk.Frame):
         btn_9.place(anchor='center', x=str(self.width * 0.95), y=str(0.85 * self.height))
 
     def back_to_home(self):
+        # self.my_tree.delete(*self.my_tree.get_children())
         self.root.frame1.tkraise()
 
     def order_details(self):
         width = self.width
         height = self.height
-        result = "No"
         if not self.my_tree.selection():
             messagebox.showwarning("Warning", "Select order to show details")
             return
@@ -520,34 +526,40 @@ class PastOrdersScreen(tk.Frame):
         contents = self.my_tree.item(curItem)
         selecteditem = contents['values']
         tableID = selecteditem[1]
+        orderID = selecteditem[0]
+        total = selecteditem[3]
 
         order_seats = self.cur.execute("select * from seat where tableID=:c", {"c": tableID})
         fetch1 = order_seats.fetchall()
 
-        tk.Label(self, text="Order No:", bg=Constants.background_color, fg="black", font=(Constants.font, 12), ) \
+        tk.Label(self, text="Order No:", bg=Constants.background_color, fg="black", font=(Constants.font, 12, "bold")) \
             .place(anchor='center', x=str(width * 0.35), y=str(0.15 * height))
-        tk.Label(self, text="Order No", bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
+        tk.Label(self, text=orderID, bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
             .place(anchor='center', x=str(width * 0.4), y=str(0.15 * height))
 
-        tk.Label(self, text="Table:", bg=Constants.background_color, fg="black", font=(Constants.font, 12), ) \
+        tk.Label(self, text="Table:", bg=Constants.background_color, fg="black", font=(Constants.font, 12, "bold")) \
             .place(anchor='center', x=str(width * 0.35), y=str(0.18 * height))
-        tk.Label(self, text="12", bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
+        tk.Label(self, text=tableID, bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
             .place(anchor='center', x=str(width * 0.4), y=str(0.18 * height))
 
-        for i in range(1, len(fetch1) + 1):
-            itemID = fetch1[i-1][2]
+        tk.Label(self, text="Total:", bg=Constants.background_color, fg="black", font=(Constants.font, 12, "bold")) \
+            .place(anchor='center', x=str(width * 0.45), y=str(0.15 * height))
+        tk.Label(self, text=total, bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
+            .place(anchor='center', x=str(width * 0.5), y=str(0.15 * height))
+
+        k = 0
+        for i in fetch1:
+            k += 1
+            itemID = i[2]
             menu_items_seat = self.cur.execute("select * from menu where itemID=:c", {"c": itemID})
             fetch2 = menu_items_seat.fetchone()
-            tk.Label(self, text=F"Seat {i}:", bg="white", fg="black", font=(Constants.font, 12), ) \
-                .place(anchor='center', x=str(width * 0.35), y=str(0.2 * height + i * 40))
-            # print(itemID)
-            print(fetch2)
-            # for j in range(1, len(fetch2)+1):
-            #     print(fetch2[j-1])
-                # tk.Label(self, text=F"{fetch2[j-1][1]}", bg=Constants.background_color, fg="black", font=(Constants.font, 12), ) \
-                #     .place(anchor='center', x=str(0.38 * width + j * 45), y=str(0.2 * height + i * 40))
-                # tk.Label(self, text=F"1200", bg=Constants.background_color, fg="white", font=(Constants.font, 10), ) \
-                #     .place(anchor='center', x=str(0.38 * width + j * 45), y=str(0.225 * height + i * 40))
+            tk.Label(self, text=F"Seat {i[0]}:", bg="white", fg="black", font=(Constants.font, 12), ) \
+                .place(anchor='center', x=str(width * 0.35), y=str(0.2 * height + k * 40))
+
+            tk.Label(self, text=itemID, bg=Constants.background_color, fg="black", font=(Constants.font, 12), ) \
+                .place(anchor='center', x=str(0.38 * width + 45), y=str(0.2 * height + k * 40))
+            tk.Label(self, text=fetch2[1], bg=Constants.background_color, fg="white", font=(Constants.font, 10), ) \
+                .place(anchor='center', x=str(0.38 * width + 45), y=str(0.225 * height + k * 40))
 
     def delete_order(self):
         result = "No"
@@ -573,7 +585,6 @@ class PastOrdersScreen(tk.Frame):
         try:
             pastorders = self.cur.execute("select * from orders")
             fetch = pastorders.fetchall()
-            print(F" The value of {fetch}")
             for i in fetch:
                 ordno = i[0]
                 tableno = i[1]
@@ -585,6 +596,147 @@ class PastOrdersScreen(tk.Frame):
                 self.my_tree.insert('', 'end', values=data)
         except sqlite3.OperationalError:
             pass
+
+
+class MenuConfigScreen(tk.Frame):
+    def __init__(self, root, *args, **kwargs):
+        super().__init__(root, *args, **kwargs)
+        self.root = root
+        self.width = kwargs['width']
+        self.height = kwargs['height']
+        self.cur = self.root.db.cursor()
+
+        tk.Label(self, text="Menu Configuration", bg=Constants.background_color, fg="black", font=("Ubuntu", 20)) \
+            .pack(pady=25, padx=25)
+
+        # Tree
+        style = ttk.Style()
+        style.configure("Treeview",
+                        foreground="black",
+                        rowheight=40,
+                        fieldbackground="white"
+                        )
+        style.map('Treeview', background=[('selected', 'lightblue')])
+
+        CENTER = 'center'
+
+        past_orders_table = tk.Frame(self, width=400, height=700, bg=Constants.background_color)
+        past_orders_table.place(anchor='center', x=str(self.width * 0.15), y=str(0.33 * self.height))
+        ###########  Creating table #############
+        my_tree = ttk.Treeview(past_orders_table)
+        self.my_tree = my_tree
+        my_tree['columns'] = ("menu_item", "item_price")
+
+        ############ creating  for table ################
+        horizontal_bar = ttk.Scrollbar(past_orders_table, orient="horizontal")
+        horizontal_bar.configure(command=my_tree.xview)
+        my_tree.configure(xscrollcommand=horizontal_bar.set)
+        # horizontal_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
+
+        vertical_bar = ttk.Scrollbar(past_orders_table, orient="vertical")
+        vertical_bar.configure(command=my_tree.yview)
+        my_tree.configure(yscrollcommand=vertical_bar.set)
+        # vertical_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
+
+        # defining columns for table
+        my_tree.column("#0", width=0, minwidth=0)
+        my_tree.column("menu_item", anchor=CENTER, width=80, minwidth=25)
+        my_tree.column("item_price", anchor=CENTER, width=80, minwidth=25)
+
+        # defining  headings for table
+        my_tree.heading("menu_item", text="Item", anchor=CENTER)
+        my_tree.heading("item_price", text="Price", anchor=CENTER)
+
+        my_tree.place(anchor='center', x=str(self.width * 0.15), y=str(0.5 * self.height))
+        # self.display_data()
+        self.update_table()
+
+        # Menu Item label & entry
+        tk.Label(self, text="Item", font=(Constants.font, 12, 'bold'), fg="Black") \
+            .place(anchor='e', x=str(self.width * 0.3), y=str(0.15 * self.height))
+        self.item = tk.StringVar()
+        self.table_entry = tk.Entry(self, font=(Constants.font, 16, 'bold'), bd=2, insertwidth=2, justify='left',
+                                    textvariable=self.item, state="normal")
+        self.table_entry.place(anchor='center', x=str(self.width * 0.35), y=str(0.19 * self.height))
+
+        # Item Price label & entry
+        tk.Label(self, text="Price", font=(Constants.font, 12, 'bold'), fg="Black") \
+            .place(anchor='e', x=str(self.width * 0.5), y=str(0.15 * self.height))
+        self.price = tk.StringVar()
+        self.table_entry = tk.Entry(self, font=(Constants.font, 16, 'bold'), bd=2, insertwidth=2, justify='left',
+                                    textvariable=self.price, state="normal")
+        self.table_entry.place(anchor='center', x=str(self.width * 0.55), y=str(0.19 * self.height))
+
+        # Add Tables Button
+        self.btn_11 = tk.Button(self, text="Add", height=2, width=10, command=self.add_menu_item,
+                                font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        self.btn_11.place(anchor='e', x=str(self.width * 0.35), y=str(0.30 * self.height))
+
+        # Delete an item Button
+        btn_2 = tk.Button(self, text="Remove\nItem", height=2, width=10, command=self.delete_item,
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_2.place(anchor='center', x=str(self.width * 0.10), y=str(0.85 * self.height))
+
+        # Delete the menu
+        btn_3 = tk.Button(self, text="Delete\nMenu", height=2, width=10, command=self.delete_menu,
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_3.place(anchor='center', x=str(self.width * 0.18), y=str(0.85 * self.height))
+
+        # Back Button
+        btn_1 = tk.Button(self, text="Back", height=2, width=10, command=self.back_to_home,
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_1.place(anchor='center', x=str(self.width * 0.95), y=str(0.85 * self.height))
+
+    def back_to_home(self):
+        self.root.frame1.tkraise()
+
+    def add_menu_item(self):
+        self.item_result = test(self.item, "str")
+        self.price_result = test(self.price, "float")
+        if self.item_result and self.price_result:
+            self.cur.execute('create table if not exists menu (itemID text, itemPrice integer)')
+            self.cur.execute("insert into menu values (?, ?)", (self.item_result, self.price_result))
+            self.root.db.commit()
+            messagebox.showinfo("Message", "Stored successfully")
+            self.update_table()
+            self.item.set("")
+            self.price.set("")
+        x = self.cur.execute("select * from menu")
+        h = x.fetchall()
+        print(h)
+
+    def update_table(self):
+        self.my_tree.delete(*self.my_tree.get_children())
+        self.display_data()
+
+    def display_data(self):
+        try:
+            menu_cursor = self.cur.execute("select * from menu")
+            menu_fetch = menu_cursor.fetchall()
+            for i in menu_fetch:
+                self.my_tree.insert('', 'end', values=i)
+        except sqlite3.OperationalError:
+            pass
+
+    def delete_item(self):
+        if not self.my_tree.selection():
+            messagebox.showwarning("Warning", "Select data to delete")
+            return
+        curItem = self.my_tree.focus()
+        contents = self.my_tree.item(curItem)
+        selecteditem = contents['values']
+        self.my_tree.delete(curItem)
+        self.cur.execute("delete from menu where itemID=:c", {"c": selecteditem[0]})
+        self.root.db.commit()
+
+    def delete_menu(self):
+        result = messagebox.askquestion('Confirm', 'Are you sure you want to delete this record?',
+                                            icon="warning")
+        if result == 'yes':
+            self.cur.execute(F"delete from menu")
+            self.root.db.commit()
+            messagebox.showinfo("Message", "Menu has been deleted successfully !")
+            self.update_table()
 
 
 class RootWindow(tk.Tk):
@@ -600,7 +752,7 @@ class RootWindow(tk.Tk):
 
         # create a frame widgets
         self.frame1 = HomeScreen(self, width=width, height=height, bg=Constants.background_color)
-        self.frame2 = tk.Frame(self)
+        self.frame2 = MenuConfigScreen(self,  width=width, height=height, bg=Constants.background_color)
         self.frame3 = RestaurantConfigScreen(self, width=width, height=height, bg=Constants.background_color)
         self.frame4 = PastOrdersScreen(self, width=width, height=height, bg=Constants.background_color)
 
@@ -855,7 +1007,7 @@ def in_progress_orders2():
 
 def test_data(db):
     cur = db.cursor()
-
+    # delete_tables(cur)
     inptdata = input_data()
     waiter = 2
     table = 3
