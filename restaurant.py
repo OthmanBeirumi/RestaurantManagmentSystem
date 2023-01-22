@@ -72,7 +72,7 @@ def input_data():
 
 def initialization(cur, inptdata):
     """Initialize tables in database"""
-    cur.execute('create table if not exists seat (seatID integer, tableID integer, itemID integer, state text)')
+    cur.execute('create table if not exists seat (seatID integer, tableID integer, itemID text, state text)')
     cur.execute("create table if not exists restaurant_tables (tableID integer, orderID integer)")
 
     for i, k in inptdata[0].data.items():
@@ -353,7 +353,8 @@ class HomeScreen(tk.Frame):
         btn_4.place(anchor='center', x=str(width * 0.95), y=str(0.85 * height))
 
         # In-Progress Orders Button
-        btn_5 = tk.Button(self, text="In-Progress\nOrders", height=2, width=10, command=lambda: in_progress_orders2(),
+        btn_5 = tk.Button(self, text="In-Progress\nOrders", height=2, width=10,
+                          command=self.load_in_progress_orders_screen,
                           font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
         btn_5.place(anchor='center', x=str(width * 0.88), y=str(0.85 * height))
 
@@ -383,9 +384,14 @@ class HomeScreen(tk.Frame):
     def load_new_order_screen(self):
         x = new_order_test(self.cur)
         if not x:
-            print("standing here")
             return
         self.root.frame6.tkraise()
+
+    def load_in_progress_orders_screen(self):
+        x = new_order_test(self.cur)
+        if not x:
+            return
+        self.root.frame7.tkraise()
 
 
 class RestaurantConfigScreen(tk.Frame):
@@ -467,7 +473,7 @@ class RestaurantConfigScreen(tk.Frame):
                 return
             self.tested_seats[i] = self.tested_seats.get(i, test_seat)
         self.cur.execute(
-            'create table if not exists seat (seatID integer, tableID integer, itemID integer, state text)')
+            'create table if not exists seat (seatID integer, tableID integer, itemID text, state text)')
         self.cur.execute("create table if not exists restaurant_tables (tableID integer, orderID integer)")
         for i, k in self.tested_seats.items():
             self.entry_seats[i - 1]["state"] = "disabled"
@@ -527,38 +533,37 @@ class PastOrdersScreen(tk.Frame):
 
         CENTER = 'center'
 
-        past_orders_table = tk.Frame(self, width=400, height=700, bg=Constants.background_color)
-        past_orders_table.place(anchor='center', x=str(self.width * 0.15), y=str(0.33 * self.height))
+        past_orders_frame = tk.Frame(self, width=400, height=700, bg=Constants.background_color)
+        past_orders_frame.place(anchor='center', x=str(self.width * 0.15), y=str(0.33 * self.height))
         ###########  Creating table #############
-        my_tree = ttk.Treeview(past_orders_table)
-        self.my_tree = my_tree
-        my_tree['columns'] = ("ordno", "table", "waiter", "total")
+        self.past_orders_tree = ttk.Treeview(past_orders_frame)
+        self.past_orders_tree['columns'] = ("ordno", "table", "waiter", "total")
 
         ############ creating  for table ################
-        horizontal_bar = ttk.Scrollbar(past_orders_table, orient="horizontal")
-        horizontal_bar.configure(command=my_tree.xview)
-        my_tree.configure(xscrollcommand=horizontal_bar.set)
+        horizontal_bar = ttk.Scrollbar(past_orders_frame, orient="horizontal")
+        horizontal_bar.configure(command=self.past_orders_tree.xview)
+        self.past_orders_tree.configure(xscrollcommand=horizontal_bar.set)
         # horizontal_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
 
-        vertical_bar = ttk.Scrollbar(past_orders_table, orient="vertical")
-        vertical_bar.configure(command=my_tree.yview)
-        my_tree.configure(yscrollcommand=vertical_bar.set)
+        vertical_bar = ttk.Scrollbar(past_orders_frame, orient="vertical")
+        vertical_bar.configure(command=self.past_orders_tree.yview)
+        self.past_orders_tree.configure(yscrollcommand=vertical_bar.set)
         # vertical_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
 
         # defining columns for table
-        my_tree.column("#0", width=0, minwidth=0)
-        my_tree.column("ordno", anchor=CENTER, width=80, minwidth=25)
-        my_tree.column("table", anchor=CENTER, width=80, minwidth=25)
-        my_tree.column("waiter", anchor=CENTER, width=80, minwidth=25)
-        my_tree.column("total", anchor=CENTER, width=80, minwidth=25)
+        self.past_orders_tree.column("#0", width=0, minwidth=0)
+        self.past_orders_tree.column("ordno", anchor=CENTER, width=80, minwidth=25)
+        self.past_orders_tree.column("table", anchor=CENTER, width=80, minwidth=25)
+        self.past_orders_tree.column("waiter", anchor=CENTER, width=80, minwidth=25)
+        self.past_orders_tree.column("total", anchor=CENTER, width=80, minwidth=25)
 
         # defining  headings for table
-        my_tree.heading("ordno", text="Order No", anchor=CENTER)
-        my_tree.heading("table", text="Table", anchor=CENTER)
-        my_tree.heading("waiter", text="Waiter", anchor=CENTER)
-        my_tree.heading("total", text="Total", anchor=CENTER)
+        self.past_orders_tree.heading("ordno", text="Order No", anchor=CENTER)
+        self.past_orders_tree.heading("table", text="Table", anchor=CENTER)
+        self.past_orders_tree.heading("waiter", text="Waiter", anchor=CENTER)
+        self.past_orders_tree.heading("total", text="Total", anchor=CENTER)
 
-        my_tree.place(anchor='center', x=str(self.width * 0.15), y=str(0.5 * self.height))
+        self.past_orders_tree.place(anchor='center', x=str(self.width * 0.15), y=str(0.5 * self.height))
         self.display_data()
 
         # Order Details Button
@@ -577,18 +582,17 @@ class PastOrdersScreen(tk.Frame):
         btn_9.place(anchor='center', x=str(self.width * 0.95), y=str(0.85 * self.height))
 
     def back_to_home(self):
-        # self.my_tree.delete(*self.my_tree.get_children())
         self.root.frame1.tkraise()
 
     def order_details(self):
         width = self.width
         height = self.height
-        if not self.my_tree.selection():
+        if not self.past_orders_tree.selection():
             messagebox.showwarning("Warning", "Select order to show details")
             return
 
-        curItem = self.my_tree.focus()
-        contents = self.my_tree.item(curItem)
+        curItem = self.past_orders_tree.focus()
+        contents = self.past_orders_tree.item(curItem)
         selecteditem = contents['values']
         tableID = selecteditem[1]
         orderID = selecteditem[0]
@@ -628,20 +632,18 @@ class PastOrdersScreen(tk.Frame):
 
     def delete_order(self):
         result = "No"
-        if not self.my_tree.selection():
+        if not self.past_orders_tree.selection():
             messagebox.showwarning("Warning", "Select data to delete")
         else:
             result = messagebox.askquestion('Confirm', 'Are you sure you want to delete this record?',
                                             icon="warning")
         if result == 'yes':
-            curItem = self.my_tree.focus()
-            contents = self.my_tree.item(curItem)
+            curItem = self.past_orders_tree.focus()
+            contents = self.past_orders_tree.item(curItem)
             selecteditem = contents['values']
-            self.my_tree.delete(curItem)
+            self.past_orders_tree.delete(curItem)
             self.cur.execute("delete from orders where orderID= %d" % selecteditem[0])
-            print("deleted order")
             self.root.db.commit()
-        # self.my_tree.delete(*self.my_tree.get_children())
 
     def display_data(self):
         p = []
@@ -658,7 +660,7 @@ class PastOrdersScreen(tk.Frame):
                 p.append([ordno, tableno, waiterno, totall])
 
             for data in p:
-                self.my_tree.insert('', 'end', values=data)
+                self.past_orders_tree.insert('', 'end', values=data)
         except sqlite3.OperationalError:
             pass
 
@@ -1088,8 +1090,6 @@ class NewOrderScreen(tk.Frame):
                                 font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
         self.btn_15.place(anchor='center', x=str(self.width * 0.74), y=str(0.81 * self.height))
 
-
-
         # Refresh Button
         btn_14 = tk.Button(self, text="Refresh", height=2, width=10, command=self.update_list_box,
                            font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
@@ -1181,7 +1181,6 @@ class NewOrderScreen(tk.Frame):
         except sqlite3.OperationalError:
             pass
 
-
     def show_seats_items(self):
         # Tree
         style = ttk.Style()
@@ -1232,7 +1231,6 @@ class NewOrderScreen(tk.Frame):
                 for i in tracked_table_fetch:
                     self.tracked_tree.insert('', 'end', values=i)
 
-
     def display_list_box_data(self):
         pending_orders_cursor = self.cur.execute("select orderID , tableID from orders where state=:c",
                                                  {"c": "in_progress"})
@@ -1240,16 +1238,14 @@ class NewOrderScreen(tk.Frame):
         for i in pending_orders_fetch:
             self.order_listbox.insert(tk.END, F"Table {i[0]} - Order {i[1]}")
 
-
     def update_list_box(self):
         self.order_listbox.delete(0, tk.END)
         self.display_list_box_data()
 
-
     def show_waiters(self):
         # Tree
         style = ttk.Style()
-        style.configure("Treeview", foreground="black", rowheight=40, fieldbackground="white")
+        style.configure("Treeview", foreground="black", rowheight=40, fieldbackground="white",)
         style.map('Treeview', background=[('selected', 'lightblue')])
 
         CENTER = 'center'
@@ -1323,6 +1319,194 @@ class NewOrderScreen(tk.Frame):
         print(h)
 
 
+class InProgressOrdersScreen(tk.Frame):
+    def __init__(self, root, *args, **kwargs):
+        super().__init__(root, *args, **kwargs)
+        self.root = root
+        self.width = kwargs['width']
+        self.height = kwargs['height']
+        self.cur = self.root.db.cursor()
+
+        tk.Label(self, text="In-Progress Orders", bg=Constants.background_color, fg="black", font=("Ubuntu", 20)) \
+            .pack(pady=25, padx=25)
+
+        # Orders Tree
+        self.orders_tree()
+        self.display_order_tree_data()
+
+        # Select Order Button
+        btn_8 = tk.Button(self, text="Select\nOrder", height=2, width=10, command=self.select_order,
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_8.place(anchor='center', x=str(self.width * 0.10), y=str(0.85 * self.height))
+
+        # Refresh Button
+        btn_14 = tk.Button(self, text="Refresh", height=2, width=10, command=self.update_list_box,
+                           font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_14.place(anchor='center', x=str(self.width * 0.18), y=str(0.85 * self.height))
+
+        # Chef Button
+        btn_15 = tk.Button(self, text="Chef", height=2, width=10, command=self.chef,
+                           font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_15.place(anchor='center', x=str(self.width * 0.33), y=str(0.85 * self.height))
+
+        # Seat - Item - State Tree
+        self.seat_item_state_tree()
+
+        # Back Button
+        btn_16 = tk.Button(self, text="Serve\nSeat", height=2, width=10, command=self.serve_seat,
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_16.place(anchor='center', x=str(self.width * 0.95), y=str(0.75 * self.height))
+
+        # Back Button
+        btn_1 = tk.Button(self, text="Back", height=2, width=10, command=self.back_to_home,
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_1.place(anchor='center', x=str(self.width * 0.95), y=str(0.85 * self.height))
+
+    def back_to_home(self):
+        self.root.frame1.tkraise()
+
+    def orders_tree(self):
+        # Table-Seat Tree
+        style = ttk.Style()
+        style.configure("Treeview", foreground="black", rowheight=35, fieldbackground="white")
+        style.map('Treeview', background=[('selected', 'lightblue')])
+
+        CENTER = 'center'
+
+        self.table_frame = tk.Frame(self, width=150, height=400, bg=Constants.background_color)
+        self.table_frame.place(anchor='center', x=str(self.width * 0.15), y=str(0.33 * self.height))
+        ###########  Creating table #############
+        self.table_tree = ttk.Treeview(self.table_frame)
+        self.table_tree['columns'] = ("table")
+
+        ############ creating  for table ################
+        horizontal_bar = ttk.Scrollbar(self.table_frame, orient="horizontal")
+        horizontal_bar.configure(command=self.table_tree.xview)
+        self.table_tree.configure(xscrollcommand=horizontal_bar.set)
+        # horizontal_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
+
+        vertical_bar = ttk.Scrollbar(self.table_frame, orient="vertical")
+        vertical_bar.configure(command=self.table_tree.yview)
+        self.table_tree.configure(yscrollcommand=vertical_bar.set)
+        # vertical_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
+
+        # defining columns for table
+        self.table_tree.column("#0", width=0, minwidth=0)
+        self.table_tree.column("table", anchor=CENTER, width=80, minwidth=25)
+
+        # defining  headings for table
+        self.table_tree.heading("table", text="Table", anchor=CENTER)
+
+        self.table_tree.place(anchor='center', x=str(self.width * 0.05), y=str(0.25 * self.height))
+
+    def display_order_tree_data(self):
+        orders_cursor = self.cur.execute("select tableID from orders where state=:c",
+                                         {"c": "in_progress"})
+        orders_fetch = orders_cursor.fetchall()
+        for i in orders_fetch:
+            self.table_tree.insert('', 'end', values=i)
+
+    def update_list_box(self):
+        self.table_tree.delete(*self.table_tree.get_children())
+        self.display_order_tree_data()
+
+    def select_order(self):
+        if not self.table_tree.selection():
+            messagebox.showwarning("Warning", "Select table to proceed")
+            return
+        curItem = self.table_tree.focus()
+        contents = (self.table_tree.item(curItem))
+        self.selected_table = contents['values']
+        self.in_progress_tree.delete(*self.in_progress_tree.get_children())
+        in_progress_cursor = self.cur.execute("select seatID , itemID , state from seat where tableID=?",
+                                              self.selected_table)
+        in_progress_fetch = in_progress_cursor.fetchall()
+        for i in in_progress_fetch:
+            self.in_progress_tree.insert('', 'end', values=i)
+
+    def seat_item_state_tree(self):
+        # Table-Seat Tree
+        style = ttk.Style()
+        style.configure("Treeview", foreground="black", rowheight=35, fieldbackground="white")
+        style.map('Treeview', background=[('selected', 'lightblue')])
+
+        CENTER = 'center'
+
+        self.in_progress_frame = tk.Frame(self, width=300, height=400, bg=Constants.background_color)
+        self.in_progress_frame.place(anchor='center', x=str(self.width * 0.35), y=str(0.35 * self.height))
+        ###########  Creating table #############
+        self.in_progress_tree = ttk.Treeview(self.in_progress_frame)
+        self.in_progress_tree['columns'] = ("seat", "item", "state")
+
+        ############ creating  for table ################
+        horizontal_bar = ttk.Scrollbar(self.in_progress_frame, orient="horizontal")
+        horizontal_bar.configure(command=self.in_progress_tree.xview)
+        self.in_progress_tree.configure(xscrollcommand=horizontal_bar.set)
+        # horizontal_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
+
+        vertical_bar = ttk.Scrollbar(self.in_progress_frame, orient="vertical")
+        vertical_bar.configure(command=self.in_progress_tree.yview)
+        self.in_progress_tree.configure(yscrollcommand=vertical_bar.set)
+        # vertical_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
+
+        # defining columns for table
+        self.in_progress_tree.column("#0", width=0, minwidth=0)
+        self.in_progress_tree.column("seat", anchor=CENTER, width=80, minwidth=25)
+        self.in_progress_tree.column("item", anchor=CENTER, width=80, minwidth=25)
+        self.in_progress_tree.column("state", anchor=CENTER, width=80, minwidth=25)
+
+        # defining  headings for table
+        self.in_progress_tree.heading("seat", text="Seat", anchor=CENTER)
+        self.in_progress_tree.heading("item", text="Item", anchor=CENTER)
+        self.in_progress_tree.heading("state", text="State", anchor=CENTER)
+
+        self.in_progress_tree.place(anchor='center', x=str(self.width * 0.10), y=str(0.25 * self.height))
+
+    def chef(self):
+        if not self.in_progress_tree.selection():
+            messagebox.showwarning("Warning", "Select seat to proceed")
+            return
+        curItem = self.in_progress_tree.focus()
+        contents = (self.in_progress_tree.item(curItem))
+        selecteditem = contents['values']
+        seat = selecteditem[0]
+        item = selecteditem[1]
+        self.cur.execute("update seat set state=? where tableID=? and seatID=? and itemID=?",
+                         ('Ready', self.selected_table[0], seat, item))
+        self.root.db.commit()
+        messagebox.showinfo("Message", F"{item} for seat {seat} is Ready !")
+
+    def serve_seat(self):
+        if not self.in_progress_tree.selection():
+            messagebox.showwarning("Warning", "Select seat to proceed")
+            return
+        curItem = self.in_progress_tree.focus()
+        contents = (self.in_progress_tree.item(curItem))
+        selecteditem = contents['values']
+        seat = selecteditem[0]
+        item = selecteditem[1]
+        self.cur.execute("update seat set state=? where tableID=? and seatID=? and itemID=?",
+                         ('Served', self.selected_table[0], seat, item))
+        messagebox.showinfo("Message", F"Seat {seat} has been served !")
+
+        seat_check_cursor = self.cur.execute("select * from seat where tableID=:c", {"c": self.selected_table[0]})
+        seat_check_fetch = seat_check_cursor.fetchall()
+        for i in seat_check_fetch:
+            if i[3] != "Served" or not i[3]:
+                print(i)
+                return
+        self.cur.execute("update orders set state=:a where tableID=:b", {"a": 'Completed', "b": self.selected_table[0]})
+
+        complete_order_cursor = self.cur.execute("select * from orders where state=? and tableID=?",
+                                                 ("Completed", self.selected_table[0]))
+        complete_order_fetch = complete_order_cursor.fetchall()
+        self.root.db.commit()
+        print(F"The Completed orders are {complete_order_fetch}")
+
+        # self.cur.execute("update waiter set waiterStatus=? where waiterID=?", ("Free", waiter))
+
+        # self.cur.execute("select * from waiter")
+        # selected_waiter_table = cur.fetchall()
 
 
 class RootWindow(tk.Tk):
@@ -1343,9 +1527,10 @@ class RootWindow(tk.Tk):
         self.frame4 = PastOrdersScreen(self, width=width, height=height, bg=Constants.background_color)
         self.frame5 = WaiterConfigScreen(self, width=width, height=height, bg=Constants.background_color)
         self.frame6 = NewOrderScreen(self, width=width, height=height, bg=Constants.background_color)
+        self.frame7 = InProgressOrdersScreen(self, width=width, height=height, bg=Constants.background_color)
 
         # place frame widgets in window
-        for frame in (self.frame1, self.frame2, self.frame3, self.frame4, self.frame5, self.frame6):
+        for frame in (self.frame1, self.frame2, self.frame3, self.frame4, self.frame5, self.frame6, self.frame7):
             frame.grid(row=0, column=0, sticky="nesw")
 
         self.frame1.tkraise()
@@ -1572,30 +1757,19 @@ def system():
     root.mainloop()
 
 
-def configure_restaurant():
-    print("restaurant")
+# def configure_restaurant():
+#     print("restaurant")
 
 
-# def configure_menu():
-#     print("menu")
 
 
-# def configure_waiters():
-#     print("waiter")
-#     messagebox.showinfo("Warning", "CRASH!!!")
-
-
-# def past_orders():
-#     print("past orders")
-
-
-def in_progress_orders2():
-    print("In-progress orders")
+# def in_progress_orders2():
+#     print("In-progress orders")
 
 
 def test_data(db):
     cur = db.cursor()
-    # delete_tables(cur)
+    delete_tables(cur)
     inptdata = input_data()
     waiter = 2
     table = 3
@@ -1615,7 +1789,7 @@ def test_data(db):
 
 def main():
     db = sqlite3.connect('restaurant.db')
-    test_data(db)
+    # test_data(db)
     root = RootWindow(db)
     root.mainloop()
 
