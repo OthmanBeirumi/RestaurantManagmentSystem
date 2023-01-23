@@ -185,7 +185,6 @@ def total(cur, tableID):
     totall = 0
     cur.execute("select * from seat where tableID=:c", {"c": tableID})
     served_seats = cur.fetchall()
-
     for i in range(len(served_seats)):
         cur.execute("select * from menu where itemID=:c", {"c": served_seats[i][2]})
         selected_menu = cur.fetchall()
@@ -305,6 +304,14 @@ def tracked_table_test(cur, table):
         return None
     return True
 
+def check_if_table_test(cur):
+    table_cursor = cur.execute("select * from restaurant_tables")
+    table_fetch = table_cursor.fetchall()
+    if not table_fetch:
+        messagebox.showinfo(F"Warning", f"There are no tables to delete !")
+        return None
+    return table_fetch
+
 
 class Constants:
     background_color = "#3A7FF6"
@@ -363,6 +370,10 @@ class HomeScreen(tk.Frame):
                           font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
         btn_6.place(anchor='center', x=str(width * 0.05), y=str(0.85 * height))
 
+        # Reset Button
+        self.btn_13 = tk.Button(self, text="Restore\nDefault", height=2, width=6, command=self.restore_default,
+                                font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        self.btn_13.place(anchor='center', x=str(width * 0.95), y=str(0.10 * height))
     def past_orders(self):
         x = new_order_test(self.cur)
         if not x:
@@ -393,6 +404,15 @@ class HomeScreen(tk.Frame):
             return
         self.root.frame7.tkraise()
 
+    def restore_default(self):
+        self.cur.execute("delete from seat")
+        self.cur.execute("delete from menu")
+        self.cur.execute("delete from restaurant_tables")
+        self.cur.execute("delete from waiter")
+        self.cur.execute("delete from orders")
+        self.root.db.commit()
+        messagebox.showinfo("Message", "All data are deleted permanently !")
+
 
 class RestaurantConfigScreen(tk.Frame):
 
@@ -407,17 +427,56 @@ class RestaurantConfigScreen(tk.Frame):
         tk.Label(self, text="Restaurant Configuration", fg=Constants.fg_color, bg=Constants.background_color,
                  font=(Constants.font, 20, "bold")).pack(pady=25, padx=25)
 
+        # Table-Seat Tree
+        style = ttk.Style()
+        style.configure("Treeview", foreground="black", rowheight=35, fieldbackground="white")
+        style.map('Treeview', background=[('selected', 'lightblue')])
+
+        CENTER = 'center'
+
+        self.restaurant_table_frame = tk.Frame(self, width=180, height=390, bg=Constants.background_color)
+        self.restaurant_table_frame.place(anchor='center', x=str(self.width * 0.15), y=str(0.38 * self.height))
+        ###########  Creating table #############
+        self.restaurant_table_tree = ttk.Treeview(self.restaurant_table_frame)
+        self.restaurant_table_tree['columns'] = ("table", "seat")
+
+        ############ creating  for table ################
+        horizontal_bar = ttk.Scrollbar(self.restaurant_table_frame, orient="horizontal")
+        horizontal_bar.configure(command=self.restaurant_table_tree.xview)
+        self.restaurant_table_tree.configure(xscrollcommand=horizontal_bar.set)
+
+        vertical_bar = ttk.Scrollbar(self.restaurant_table_frame, orient="vertical")
+        vertical_bar.configure(command=self.restaurant_table_tree.yview)
+        self.restaurant_table_tree.configure(yscrollcommand=vertical_bar.set)
+
+        # defining columns for table
+        self.restaurant_table_tree.column("#0", width=0, minwidth=0)
+        self.restaurant_table_tree.column("table", anchor=CENTER, width=80, minwidth=25)
+        self.restaurant_table_tree.column("seat", anchor=CENTER, width=80, minwidth=25)
+
+        # defining  headings for table
+        self.restaurant_table_tree.heading("table", text="Table", anchor=CENTER)
+        self.restaurant_table_tree.heading("seat", text="Seat", anchor=CENTER)
+
+        self.restaurant_table_tree.place(anchor='center', x=str(self.width * 0.065), y=str(0.25 * self.height))
+        self.display_data()
+
         tk.Label(self, text="Number of Tables", font=(Constants.font, 12, 'bold'), fg="Black") \
-            .place(anchor='center', x=str(self.width * 0.1), y=str(0.15 * self.height))
+            .place(anchor='e', x=str(self.width * 0.33), y=str(0.15 * self.height))
         self.tables = tk.StringVar()
         self.table_entry = tk.Entry(self, font=(Constants.font, 16, 'bold'), bd=2, insertwidth=2, justify='left',
                                     textvariable=self.tables, state="normal")
-        self.table_entry.place(anchor='e', x=str(self.width * 0.22), y=str(0.20 * self.height))
+        self.table_entry.place(anchor='e', x=str(self.width * 0.4), y=str(0.2 * self.height))
 
         # Add Tables Button
         self.btn_11 = tk.Button(self, text="Add", height=2, width=10, command=self.add_table,
                                 font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
-        self.btn_11.place(anchor='e', x=str(self.width * 0.22), y=str(0.30 * self.height))
+        self.btn_11.place(anchor='e', x=str(self.width * 0.39), y=str(0.30 * self.height))
+
+        # Delete Button
+        btn_6 = tk.Button(self, text="Delete\nTables", height=2, width=10, command=self.delete_restaurant_tables,
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_6.place(anchor='center', x=str(self.width * 0.1), y=str(0.85 * self.height))
 
         # Back Button
         btn_10 = tk.Button(self, text="Back", height=2, width=10, command=self.back_to_home,
@@ -425,32 +484,35 @@ class RestaurantConfigScreen(tk.Frame):
         btn_10.place(anchor='center', x=str(self.width * 0.95), y=str(0.85 * self.height))
 
         # Seats
+    def display_data(self):
+        try:
+            restaurant_table_cursor = self.cur.execute("select tableID , seatID from seat order by tableID asc")
+            restaurant_table_fetch = restaurant_table_cursor.fetchall()
+            for i in restaurant_table_fetch:
+                self.restaurant_table_tree.insert('', 'end', values=i)
+        except sqlite3.OperationalError:
+            pass
 
     def add_seats(self):
         self.seats = [tk.StringVar()] * self.result
         tk.Label(self, font=(Constants.font, 18, 'bold'), text=F"Seats Per Table", fg="Black",
                  bg=Constants.background_color, anchor="center") \
-            .place(anchor='e', x=str(self.width * 0.39), y=str(0.20 * self.height))
+            .place(anchor='e', x=str(self.width * 0.59), y=str(0.20 * self.height))
         for i in range(1, self.result + 1):
             self.seats[i - 1] = tk.StringVar()
             seatlbl = tk.Label(self, font=(Constants.font, 16, 'bold'), text=F"Table {i}",
                                fg="Black", bg=Constants.background_color, anchor="center")
-            seatlbl.place(anchor='center', x=str(self.width * 0.3), y=str(0.2 * self.height + i * 40))
+            seatlbl.place(anchor='center', x=str(self.width * 0.5), y=str(0.2 * self.height + i * 40))
 
             seatentry = tk.Entry(self, font=(Constants.font, 16, 'bold'), bd=2, insertwidth=2, justify='left',
                                  state="normal", textvariable=self.seats[i - 1])
-            seatentry.place(anchor='center', x=str(self.width * 0.42), y=str(0.2 * self.height + i * 40))
+            seatentry.place(anchor='center', x=str(self.width * 0.62), y=str(0.2 * self.height + i * 40))
             self.entry_seats.append(seatentry)
 
         # Add Button
         btn_12 = tk.Button(self, text="Add Seats", height=2, width=10, font=(Constants.font, 12, 'bold'),
                            bg=Constants.btn_color, fg="White", command=self.add_table_seats)
-        btn_12.place(anchor='center', x=str(self.width * 0.5), y=str(0.85 * self.height))
-
-        # Delete Button
-        btn_6 = tk.Button(self, text="Delete\nTables", height=2, width=10, command=self.delete_restaurant_tables,
-                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
-        btn_6.place(anchor='center', x=str(self.width * 0.05), y=str(0.85 * self.height))
+        btn_12.place(anchor='center', x=str(self.width * 0.55), y=str(0.85 * self.height))
 
     def back_to_home(self):
         self.root.frame1.tkraise()
@@ -461,9 +523,6 @@ class RestaurantConfigScreen(tk.Frame):
             self.add_seats()
             self.table_entry["state"] = "disabled"
             self.btn_11["state"] = "disabled"
-        x = self.cur.execute("select * from seat")
-        h = x.fetchall()
-        print(h)
 
     def add_table_seats(self):
         for i in range(1, self.result + 1):
@@ -480,33 +539,29 @@ class RestaurantConfigScreen(tk.Frame):
             for m in range(1, k + 1):
                 self.cur.execute("insert into seat values (?, ?, ?, ?)", (m, i, None, None))
             self.cur.execute("insert into restaurant_tables values (?, ?)", (i, None))
-            print(F" {i}  is {k}")
+        messagebox.showinfo("Message", "Tables have been added successfully !")
+        self.display_data()
         self.root.db.commit()
-
-        # i = 0
-        # for row in self.cur.execute("select * from seat"):
-        #     i += 1
-        #     tk.Label(self, text=row[0], bg="#28393a", fg="white", font=(Constants.font, 12), )\
-        #             .place(anchor='center', x=str(self.width * 0.7), y=str(0.2 * self.height + i * 40))
-        #     tk.Label(self, text=row[1], bg="#28393a", fg="white", font=(Constants.font, 12), ) \
-        #         .place(anchor='center', x=str(self.width * 0.75), y=str(0.2 * self.height + i * 40))
-        # for row in self.cur.execute("select * from restaurant_tables"):
-        #     print(row)
 
     def delete_restaurant_tables(self):
-        self.table_entry["state"] = "normal"
-        self.btn_11["state"] = "normal"
-        self.tables.set("")
-
-        for i in range(1, self.result + 1):
-            self.seats[i - 1].set("")
-            self.entry_seats[i - 1]["state"] = "normal"
-        """Delete tables and start again"""
-        self.cur.execute("delete from restaurant_tables")
-        self.cur.execute("delete from seat")
-        self.root.db.commit()
-        # for widget in self.winfo_children():
-        #     widget.destroy()
+        check = check_if_table_test(self.cur)
+        if check:
+            result = messagebox.askquestion('Confirm', 'Are you sure you want to delete the tables?',
+                                            icon="warning")
+            if result == 'yes':
+                """Delete tables and start again"""
+                self.cur.execute("delete from restaurant_tables")
+                self.cur.execute("delete from seat")
+                messagebox.showinfo("Message", "Tables have been deleted successfully !")
+                self.restaurant_table_tree.delete(*self.restaurant_table_tree.get_children())
+                self.root.db.commit()
+                self.table_entry["state"] = "normal"
+                self.btn_11["state"] = "normal"
+                self.tables.set("")
+                for i in range(1, len(check) + 1):
+                    self.seats[i - 1].set("")
+                    self.entry_seats[i - 1]["state"] = "normal"
+                self.root.db.commit()
 
 
 class PastOrdersScreen(tk.Frame):
@@ -564,17 +619,21 @@ class PastOrdersScreen(tk.Frame):
         self.past_orders_tree.heading("total", text="Total", anchor=CENTER)
 
         self.past_orders_tree.place(anchor='center', x=str(self.width * 0.15), y=str(0.5 * self.height))
-        self.display_data()
 
-        # Order Details Button
-        btn_7 = tk.Button(self, text="Order\nDetails", height=2, width=10, command=self.order_details,
+        # Refresh Button
+        btn_7 = tk.Button(self, text="Refresh", height=2, width=10, command=self.display_data,
                           font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
-        btn_7.place(anchor='center', x=str(self.width * 0.10), y=str(0.85 * self.height))
+        btn_7.place(anchor='center', x=str(self.width * 0.07), y=str(0.85 * self.height))
 
         # Delete Order Button
         btn_8 = tk.Button(self, text="Delete\nOrder", height=2, width=10, command=self.delete_order,
                           font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
         btn_8.place(anchor='center', x=str(self.width * 0.18), y=str(0.85 * self.height))
+
+        # Order Details Button
+        btn_10 = tk.Button(self, text="Order\nDetails", height=2, width=10, command=self.order_details,
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_10.place(anchor='center', x=str(self.width * 0.26), y=str(0.85 * self.height))
 
         # Back Button
         btn_9 = tk.Button(self, text="Back", height=2, width=10, command=self.back_to_home,
@@ -584,9 +643,51 @@ class PastOrdersScreen(tk.Frame):
     def back_to_home(self):
         self.root.frame1.tkraise()
 
+    # def order_details(self):
+    #     if not self.past_orders_tree.selection():
+    #         messagebox.showwarning("Warning", "Select order to show details")
+    #         return
+    #
+    #     curItem = self.past_orders_tree.focus()
+    #     contents = self.past_orders_tree.item(curItem)
+    #     selecteditem = contents['values']
+    #     tableID = selecteditem[1]
+    #     orderID = selecteditem[0]
+    #     total = selecteditem[3]
+    #
+    #     order_seats = self.cur.execute("select * from seat where tableID=:c", {"c": tableID})
+    #     fetch1 = order_seats.fetchall()
+    #
+    #     tk.Label(self, text="Order No:", bg=Constants.background_color, fg="black", font=(Constants.font, 12, "bold")) \
+    #         .place(anchor='center', x=str(self.width * 0.35), y=str(0.15 * self.height))
+    #     tk.Label(self, text=orderID, bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
+    #         .place(anchor='center', x=str(self.width * 0.4), y=str(0.15 * self.height))
+    #
+    #     tk.Label(self, text="Table:", bg=Constants.background_color, fg="black", font=(Constants.font, 12, "bold")) \
+    #         .place(anchor='center', x=str(self.width * 0.35), y=str(0.18 * self.height))
+    #     tk.Label(self, text=tableID, bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
+    #         .place(anchor='center', x=str(self.width * 0.4), y=str(0.18 * self.height))
+    #
+    #     tk.Label(self, text="Total:", bg=Constants.background_color, fg="black", font=(Constants.font, 12, "bold")) \
+    #         .place(anchor='center', x=str(self.width * 0.45), y=str(0.15 * self.height))
+    #     tk.Label(self, text=total, bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
+    #         .place(anchor='center', x=str(self.width * 0.5), y=str(0.15 * self.height))
+    #
+    #     k = 0
+    #     for i in fetch1:
+    #         k += 1
+    #         itemID = i[2]
+    #         menu_items_seat = self.cur.execute("select * from menu where itemID=:c", {"c": itemID})
+    #         fetch2 = menu_items_seat.fetchone()
+    #         tk.Label(self, text=F"Seat {i[0]}:", bg="white", fg="black", font=(Constants.font, 12), ) \
+    #             .place(anchor='center', x=str(self.width * 0.35), y=str(0.2 * self.height + k * 40))
+    #
+    #         tk.Label(self, text=itemID, bg=Constants.background_color, fg="black", font=(Constants.font, 12), ) \
+    #             .place(anchor='center', x=str(0.38 * self.width + 45), y=str(0.2 * self.height + k * 40))
+    #         tk.Label(self, text=fetch2[1], bg=Constants.background_color, fg="white", font=(Constants.font, 10), ) \
+    #             .place(anchor='center', x=str(0.38 * self.width + 45), y=str(0.225 * self.height + k * 40))
+
     def order_details(self):
-        width = self.width
-        height = self.height
         if not self.past_orders_tree.selection():
             messagebox.showwarning("Warning", "Select order to show details")
             return
@@ -602,19 +703,19 @@ class PastOrdersScreen(tk.Frame):
         fetch1 = order_seats.fetchall()
 
         tk.Label(self, text="Order No:", bg=Constants.background_color, fg="black", font=(Constants.font, 12, "bold")) \
-            .place(anchor='center', x=str(width * 0.35), y=str(0.15 * height))
-        tk.Label(self, text=orderID, bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
-            .place(anchor='center', x=str(width * 0.4), y=str(0.15 * height))
+            .place(anchor='center', x=str(self.width * 0.35), y=str(0.15 * self.height))
+        self.order_no_var = tk.Label(self, text=orderID, bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
+            .place(anchor='center', x=str(self.width * 0.4), y=str(0.15 * self.height))
 
         tk.Label(self, text="Table:", bg=Constants.background_color, fg="black", font=(Constants.font, 12, "bold")) \
-            .place(anchor='center', x=str(width * 0.35), y=str(0.18 * height))
+            .place(anchor='center', x=str(self.width * 0.35), y=str(0.18 * self.height))
         tk.Label(self, text=tableID, bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
-            .place(anchor='center', x=str(width * 0.4), y=str(0.18 * height))
+            .place(anchor='center', x=str(self.width * 0.4), y=str(0.18 * self.height))
 
         tk.Label(self, text="Total:", bg=Constants.background_color, fg="black", font=(Constants.font, 12, "bold")) \
-            .place(anchor='center', x=str(width * 0.45), y=str(0.15 * height))
+            .place(anchor='center', x=str(self.width * 0.45), y=str(0.15 * self.height))
         tk.Label(self, text=total, bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
-            .place(anchor='center', x=str(width * 0.5), y=str(0.15 * height))
+            .place(anchor='center', x=str(self.width * 0.5), y=str(0.15 * self.height))
 
         k = 0
         for i in fetch1:
@@ -623,12 +724,12 @@ class PastOrdersScreen(tk.Frame):
             menu_items_seat = self.cur.execute("select * from menu where itemID=:c", {"c": itemID})
             fetch2 = menu_items_seat.fetchone()
             tk.Label(self, text=F"Seat {i[0]}:", bg="white", fg="black", font=(Constants.font, 12), ) \
-                .place(anchor='center', x=str(width * 0.35), y=str(0.2 * height + k * 40))
+                .place(anchor='center', x=str(self.width * 0.35), y=str(0.2 * self.height + k * 40))
 
             tk.Label(self, text=itemID, bg=Constants.background_color, fg="black", font=(Constants.font, 12), ) \
-                .place(anchor='center', x=str(0.38 * width + 45), y=str(0.2 * height + k * 40))
+                .place(anchor='center', x=str(0.38 * self.width + 45), y=str(0.2 * self.height + k * 40))
             tk.Label(self, text=fetch2[1], bg=Constants.background_color, fg="white", font=(Constants.font, 10), ) \
-                .place(anchor='center', x=str(0.38 * width + 45), y=str(0.225 * height + k * 40))
+                .place(anchor='center', x=str(0.38 * self.width + 45), y=str(0.225 * self.height + k * 40))
 
     def delete_order(self):
         result = "No"
@@ -647,22 +748,20 @@ class PastOrdersScreen(tk.Frame):
 
     def display_data(self):
         p = []
-
-        # self.my_tree.delete(*self.my_tree.get_children())
-        try:
-            pastorders = self.cur.execute("select * from orders")
-            fetch = pastorders.fetchall()
-            for i in fetch:
-                ordno = i[0]
-                tableno = i[1]
-                waiterno = i[2]
-                totall = total(self.cur, tableno)
-                p.append([ordno, tableno, waiterno, totall])
-
-            for data in p:
-                self.past_orders_tree.insert('', 'end', values=data)
-        except sqlite3.OperationalError:
-            pass
+        self.past_orders_tree.delete(*self.past_orders_tree.get_children())
+        pastorders = self.cur.execute("select * from orders where state=:c", {"c": 'Completed'})
+        fetch = pastorders.fetchall()
+        if not fetch:
+            messagebox.showinfo("Message", "No past orders")
+            return
+        for i in fetch:
+            ordno = i[0]
+            tableno = i[1]
+            waiterno = i[2]
+            totall = total(self.cur, tableno)
+            p.append([ordno, tableno, waiterno, totall])
+        for data in p:
+            self.past_orders_tree.insert('', 'end', values=data)
 
 
 class MenuConfigScreen(tk.Frame):
@@ -763,9 +862,6 @@ class MenuConfigScreen(tk.Frame):
             self.update_table()
             self.item.set("")
             self.price.set("")
-        x = self.cur.execute("select * from menu")
-        h = x.fetchall()
-        print(h)
 
     def update_table(self):
         self.my_tree.delete(*self.my_tree.get_children())
@@ -892,9 +988,6 @@ class WaiterConfigScreen(tk.Frame):
                 self.cur.execute("insert into waiter values (?, ?, ?)", (i, F"waiter {i}", "Free"))
             self.root.db.commit()
             self.update_table()
-        x = self.cur.execute("select * from waiter")
-        h = x.fetchall()
-        print(h)
 
     def display_waiters(self):
         try:
@@ -920,7 +1013,7 @@ class WaiterConfigScreen(tk.Frame):
         result = messagebox.askquestion('Confirm', 'Are you sure you want to delete all the waiters?',
                                         icon="warning")
         if result == 'yes':
-            self.cur.execute(F"delete from waiter")
+            self.cur.execute("delete from waiter")
             self.root.db.commit()
             messagebox.showinfo("Message", "All waiters have been deleted successfully !")
             self.waiters_entry["state"] = "normal"
@@ -1100,7 +1193,7 @@ class NewOrderScreen(tk.Frame):
 
     def display_table_seats(self):
         try:
-            table_seat_cursor = self.cur.execute("select tableID , seatID from seat")
+            table_seat_cursor = self.cur.execute("select distinct tableID , seatID from seat order by tableID asc")
             table_seat_fetch = table_seat_cursor.fetchall()
             for i in table_seat_fetch:
                 self.table_seat_tree.insert('', 'end', values=i)
@@ -1126,9 +1219,6 @@ class NewOrderScreen(tk.Frame):
                 self.root.db.commit()
                 messagebox.showinfo("Message", "Stored successfully")
                 self.item.set("")
-        x = self.cur.execute("select * from seat")
-        h = x.fetchall()
-        print(h)
 
     def show_menu(self):
         self.cond = not self.cond
@@ -1188,7 +1278,6 @@ class NewOrderScreen(tk.Frame):
         style.map('Treeview', background=[('selected', 'lightblue')])
 
         CENTER = 'center'
-
         tracking_frame = tk.Frame(self, width=250, height=200, bg=Constants.background_color)
         tracking_frame.place(anchor='center', x=str(self.width * 0.68), y=str(0.35 * self.height))
         ###########  Creating table #############
@@ -1217,7 +1306,7 @@ class NewOrderScreen(tk.Frame):
         self.tracked_tree.heading("item", text="Item", anchor=CENTER)
         self.tracked_tree.heading("state", text="State", anchor=CENTER)
 
-        self.tracked_tree.place(anchor='center', x=str(self.width * 0.09), y=str(0.28 * self.height))
+        self.tracked_tree.place(anchor='center', x=str(self.width * 0.09), y=str(0.25 * self.height))
 
     def display_seat_item_state(self):
         self.tracked_table_result = test(self.tracked_table_var, "int")
@@ -1241,6 +1330,10 @@ class NewOrderScreen(tk.Frame):
     def update_list_box(self):
         self.order_listbox.delete(0, tk.END)
         self.display_list_box_data()
+        self.waiters_tree.delete(*self.waiters_tree.get_children())
+        self.display_waiters()
+        self.table_seat_tree.delete(*self.table_seat_tree.get_children())
+        self.display_table_seats()
 
     def show_waiters(self):
         # Tree
@@ -1285,7 +1378,6 @@ class NewOrderScreen(tk.Frame):
         try:
             waiter_cursor = self.cur.execute("select * from waiter where waiterStatus=:c", {"c": "Free"})
             waiter_fetch = waiter_cursor.fetchall()
-            print(F"the waiter list are {waiter_fetch}")
             for i in waiter_fetch:
                 self.waiters_tree.insert('', 'end', values=i)
         except sqlite3.OperationalError as e:
@@ -1314,9 +1406,6 @@ class NewOrderScreen(tk.Frame):
             messagebox.showwarning("Warning", "define a table above")
         self.waiters_tree.delete(*self.waiters_tree.get_children())
         self.display_waiters()
-        x = self.cur.execute("select * from orders")
-        h = x.fetchall()
-        print(h)
 
 
 class InProgressOrdersScreen(tk.Frame):
@@ -1493,20 +1582,16 @@ class InProgressOrdersScreen(tk.Frame):
         seat_check_fetch = seat_check_cursor.fetchall()
         for i in seat_check_fetch:
             if i[3] != "Served" or not i[3]:
-                print(i)
                 return
         self.cur.execute("update orders set state=:a where tableID=:b", {"a": 'Completed', "b": self.selected_table[0]})
 
         complete_order_cursor = self.cur.execute("select * from orders where state=? and tableID=?",
                                                  ("Completed", self.selected_table[0]))
-        complete_order_fetch = complete_order_cursor.fetchall()
+        complete_order_fetch = complete_order_cursor.fetchone()
+        waiter = complete_order_fetch[2]
+        self.cur.execute("update waiter set waiterStatus=? where waiterID=?", ("Free", waiter))
         self.root.db.commit()
-        print(F"The Completed orders are {complete_order_fetch}")
-
-        # self.cur.execute("update waiter set waiterStatus=? where waiterID=?", ("Free", waiter))
-
-        # self.cur.execute("select * from waiter")
-        # selected_waiter_table = cur.fetchall()
+        self.in_progress_tree.delete(*self.in_progress_tree.get_children())
 
 
 class RootWindow(tk.Tk):
