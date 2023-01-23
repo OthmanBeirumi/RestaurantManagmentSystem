@@ -1,3 +1,4 @@
+import operator
 import sqlite3
 import tkinter as tk
 from tkinter import ttk
@@ -191,23 +192,6 @@ def total(cur, tableID):
         totall += selected_menu[0][1]
     return totall
 
-    # if served_seats[i][3] != '':
-    #     cur.execute("update seat set ")
-    # if served_seats[i][3] != 'Served':
-    #     cur.execute("update seat set state=? where waiterID=?", ("Free", waiter))
-    #     return None
-
-    # cur.execute("select * from orders where tableID=:c", {"c": tableID})
-    # completedOrder = cur.fetchall()
-    # if completedOrder[3] != "Completed":
-    #     return "Can't generate the bill now"
-    #
-    # cur.execute("select * from seat where tableID=:c", {"c": tableID})
-    # served_seats = cur.fetchall()
-    # for i in range(len(served_seats)):
-    #     if served_seats[i][3] != 'Served':
-    #         return None
-
 
 def completed_orders(cur):
     try:
@@ -222,6 +206,18 @@ def in_progress_orders(cur):
     cur.execute("select * from orders where state=?", "in_progress")
     orders = cur.fetchall()
 
+
+def most_popular_item(cur):
+    item_list = {}
+    cur.execute("select * from seat where itemID is not null")
+    popular_item_fetch = cur.fetchall()
+    if not popular_item_fetch:
+        messagebox.showinfo("Message", "No items for seats")
+        return
+    for i in popular_item_fetch:
+        item_list[i[2]] = item_list.get(i[2], 0) + 1
+    sorted_item_list = sorted(item_list.items(), key=operator.itemgetter(1), reverse=True)
+    return sorted_item_list
 
 def delete_tables(cur):
     """Delete tables and start again"""
@@ -340,8 +336,7 @@ class HomeScreen(tk.Frame):
         # Restaurant Configuration Button
         btn_1 = tk.Button(self, text="Restaurant Configuration", height=2, width=25,
                           command=self.load_restaurant_configuration_page, font=(Constants.font, 12, 'bold'),
-                          bg=Constants.btn_color,
-                          fg="White", cursor="hand2")
+                          bg=Constants.btn_color, fg="White")
         btn_1.place(anchor='center', x=str(width / 2), y=str(0.35 * height))
 
         # Menu Configuration Button
@@ -640,58 +635,69 @@ class PastOrdersScreen(tk.Frame):
                           font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
         btn_9.place(anchor='center', x=str(self.width * 0.95), y=str(0.85 * self.height))
 
+        # Show Statistics Button
+        btn_11 = tk.Button(self, text="Show", height=1, width=5, command=self.show_statistics,
+                          font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
+        btn_11.place(anchor='center', x=str(self.width * 0.93), y=str(0.65 * self.height))
+
+        tk.Label(self, text="Statistics", bg=Constants.background_color, fg="black", font=(Constants.font, 14))\
+            .place(anchor='center', x=str(self.width * 0.90), y=str(0.10 * self.height))
+        self.statisticss_tree()
+
     def back_to_home(self):
         self.root.frame1.tkraise()
 
-    # def order_details(self):
-    #     if not self.past_orders_tree.selection():
-    #         messagebox.showwarning("Warning", "Select order to show details")
-    #         return
-    #
-    #     curItem = self.past_orders_tree.focus()
-    #     contents = self.past_orders_tree.item(curItem)
-    #     selecteditem = contents['values']
-    #     tableID = selecteditem[1]
-    #     orderID = selecteditem[0]
-    #     total = selecteditem[3]
-    #
-    #     order_seats = self.cur.execute("select * from seat where tableID=:c", {"c": tableID})
-    #     fetch1 = order_seats.fetchall()
-    #
-    #     tk.Label(self, text="Order No:", bg=Constants.background_color, fg="black", font=(Constants.font, 12, "bold")) \
-    #         .place(anchor='center', x=str(self.width * 0.35), y=str(0.15 * self.height))
-    #     tk.Label(self, text=orderID, bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
-    #         .place(anchor='center', x=str(self.width * 0.4), y=str(0.15 * self.height))
-    #
-    #     tk.Label(self, text="Table:", bg=Constants.background_color, fg="black", font=(Constants.font, 12, "bold")) \
-    #         .place(anchor='center', x=str(self.width * 0.35), y=str(0.18 * self.height))
-    #     tk.Label(self, text=tableID, bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
-    #         .place(anchor='center', x=str(self.width * 0.4), y=str(0.18 * self.height))
-    #
-    #     tk.Label(self, text="Total:", bg=Constants.background_color, fg="black", font=(Constants.font, 12, "bold")) \
-    #         .place(anchor='center', x=str(self.width * 0.45), y=str(0.15 * self.height))
-    #     tk.Label(self, text=total, bg=Constants.background_color, fg="white", font=(Constants.font, 12), ) \
-    #         .place(anchor='center', x=str(self.width * 0.5), y=str(0.15 * self.height))
-    #
-    #     k = 0
-    #     for i in fetch1:
-    #         k += 1
-    #         itemID = i[2]
-    #         menu_items_seat = self.cur.execute("select * from menu where itemID=:c", {"c": itemID})
-    #         fetch2 = menu_items_seat.fetchone()
-    #         tk.Label(self, text=F"Seat {i[0]}:", bg="white", fg="black", font=(Constants.font, 12), ) \
-    #             .place(anchor='center', x=str(self.width * 0.35), y=str(0.2 * self.height + k * 40))
-    #
-    #         tk.Label(self, text=itemID, bg=Constants.background_color, fg="black", font=(Constants.font, 12), ) \
-    #             .place(anchor='center', x=str(0.38 * self.width + 45), y=str(0.2 * self.height + k * 40))
-    #         tk.Label(self, text=fetch2[1], bg=Constants.background_color, fg="white", font=(Constants.font, 10), ) \
-    #             .place(anchor='center', x=str(0.38 * self.width + 45), y=str(0.225 * self.height + k * 40))
+    def statisticss_tree(self):
+        # Tree
+        style = ttk.Style()
+        style.configure("Treeview", foreground="black", rowheight=40, fieldbackground="white")
+        style.map('Treeview', background=[('selected', 'lightblue')])
+
+        CENTER = 'center'
+
+        statistics_frame = tk.Frame(self, width=200, height=400, bg=Constants.background_color)
+        statistics_frame.place(anchor='center', x=str(self.width * 0.9), y=str(0.38 * self.height))
+        ###########  Creating table #############
+        self.statistics_tree = ttk.Treeview(statistics_frame)
+        self.statistics_tree['columns'] = ("item", "cumulative_number")
+
+        ############ creating  for table ################
+        horizontal_bar = ttk.Scrollbar(statistics_frame, orient="horizontal")
+        horizontal_bar.configure(command=self.statistics_tree.xview)
+        self.statistics_tree.configure(xscrollcommand=horizontal_bar.set)
+        # horizontal_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
+
+        vertical_bar = ttk.Scrollbar(statistics_frame, orient="vertical")
+        vertical_bar.configure(command=self.statistics_tree.yview)
+        self.statistics_tree.configure(yscrollcommand=vertical_bar.set)
+        # vertical_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
+
+        # defining columns for table
+        self.statistics_tree.column("#0", width=0, minwidth=0)
+        self.statistics_tree.column("item", anchor=CENTER, width=80, minwidth=25)
+        self.statistics_tree.column("cumulative_number", anchor=CENTER, width=100, minwidth=25)
+
+
+        # defining  headings for table
+        self.statistics_tree.heading("item", text="Item", anchor=CENTER)
+        self.statistics_tree.heading("cumulative_number", text="Cumulative No.", anchor=CENTER)
+
+        self.statistics_tree.place(anchor='center', x=str(self.width * 0.07), y=str(0.25 * self.height))
+
+    def show_statistics(self):
+        self.statistics_tree.delete(*self.statistics_tree.get_children())
+        items = most_popular_item(self.cur)
+        if not items:
+            return
+        # for k, v in items.items():
+        #     self.statistics_tree.insert('', 'end', values=(k, v))
+        for data in items:
+            self.statistics_tree.insert('', 'end', values=data)
 
     def order_details(self):
         if not self.past_orders_tree.selection():
             messagebox.showwarning("Warning", "Select order to show details")
             return
-
         curItem = self.past_orders_tree.focus()
         contents = self.past_orders_tree.item(curItem)
         selecteditem = contents['values']
@@ -1128,6 +1134,39 @@ class NewOrderScreen(tk.Frame):
         self.table_seat_tree.place(anchor='center', x=str(self.width * 0.15), y=str(0.5 * self.height))
         self.display_table_seats()
 
+        # Menu Tree
+        style = ttk.Style()
+        style.configure("Treeview", foreground="black", rowheight=40, fieldbackground="white")
+        style.map('Treeview', background=[('selected', 'lightblue')])
+
+        CENTER = 'center'
+
+        self.menu_frame = tk.Frame(self, width=180, height=400, bg=Constants.background_color)
+        self.menu_frame.place(anchor='center', x=str(self.width * 0.36), y=str(0.63 * self.height))
+        ###########  Creating table #############
+        self.menu_tree = ttk.Treeview(self.menu_frame)
+        self.menu_tree['columns'] = ("menu_item", "item_price")
+
+        ############ creating  for table ################
+        horizontal_bar = ttk.Scrollbar(self.menu_frame, orient="horizontal")
+        horizontal_bar.configure(command=self.menu_tree.xview)
+        self.menu_tree.configure(xscrollcommand=horizontal_bar.set)
+
+        vertical_bar = ttk.Scrollbar(self.menu_frame, orient="vertical")
+        vertical_bar.configure(command=self.menu_tree.yview)
+        self.menu_tree.configure(yscrollcommand=vertical_bar.set)
+
+        # defining columns for table
+        self.menu_tree.column("#0", width=0, minwidth=0)
+        self.menu_tree.column("menu_item", anchor=CENTER, width=80, minwidth=25)
+        self.menu_tree.column("item_price", anchor=CENTER, width=80, minwidth=25)
+
+        # defining  headings for table
+        self.menu_tree.heading("menu_item", text="Item", anchor=CENTER)
+        self.menu_tree.heading("item_price", text="Price", anchor=CENTER)
+
+        self.menu_tree.place(anchor='center', x=str(self.width * 0.065), y=str(0.28 * self.height))
+
         # Item name label & entry
         tk.Label(self, text="Item", font=(Constants.font, 12, 'bold'), fg="Black") \
             .place(anchor='e', x=str(self.width * 0.3), y=str(0.15 * self.height))
@@ -1137,14 +1176,14 @@ class NewOrderScreen(tk.Frame):
         self.item_selection_entry.place(anchor='center', x=str(self.width * 0.35), y=str(0.19 * self.height))
 
         # Add Item Button
-        self.btn_11 = tk.Button(self, text="Add\nItem", height=2, width=10, command=self.add_seat_item,
+        btn_11 = tk.Button(self, text="Add\nItem", height=2, width=10, command=self.add_seat_item,
                                 font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
-        self.btn_11.place(anchor='e', x=str(self.width * 0.35), y=str(0.30 * self.height))
+        btn_11.place(anchor='e', x=str(self.width * 0.35), y=str(0.30 * self.height))
 
         # Show Menu Button
-        self.btn_12 = tk.Button(self, text="Show\nMenu", height=2, width=10, command=self.show_menu,
+        btn_12 = tk.Button(self, text="Show\nMenu", height=2, width=10, command=self.show_menu,
                                 font=(Constants.font, 12, 'bold'), bg=Constants.btn_color, fg="White")
-        self.btn_12.place(anchor='e', x=str(self.width * 0.45), y=str(0.30 * self.height))
+        btn_12.place(anchor='e', x=str(self.width * 0.45), y=str(0.30 * self.height))
 
         # Back Button
         btn_1 = tk.Button(self, text="Back", height=2, width=10, command=self.back_to_home,
@@ -1222,42 +1261,7 @@ class NewOrderScreen(tk.Frame):
 
     def show_menu(self):
         self.cond = not self.cond
-
         if self.cond:
-            # Tree
-            style = ttk.Style()
-            style.configure("Treeview", foreground="black", rowheight=40, fieldbackground="white")
-            style.map('Treeview', background=[('selected', 'lightblue')])
-
-            CENTER = 'center'
-
-            self.menu_frame = tk.Frame(self, width=200, height=350, bg=Constants.background_color)
-            self.menu_frame.place(anchor='center', x=str(self.width * 0.35), y=str(0.6 * self.height))
-            ###########  Creating table #############
-            self.menu_tree = ttk.Treeview(self.menu_frame)
-            self.menu_tree['columns'] = ("menu_item", "item_price")
-
-            ############ creating  for table ################
-            horizontal_bar = ttk.Scrollbar(self.menu_frame, orient="horizontal")
-            horizontal_bar.configure(command=self.menu_tree.xview)
-            self.menu_tree.configure(xscrollcommand=horizontal_bar.set)
-            # horizontal_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
-
-            vertical_bar = ttk.Scrollbar(self.menu_frame, orient="vertical")
-            vertical_bar.configure(command=self.menu_tree.yview)
-            self.menu_tree.configure(yscrollcommand=vertical_bar.set)
-            # vertical_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
-
-            # defining columns for table
-            self.menu_tree.column("#0", width=0, minwidth=0)
-            self.menu_tree.column("menu_item", anchor=CENTER, width=80, minwidth=25)
-            self.menu_tree.column("item_price", anchor=CENTER, width=80, minwidth=25)
-
-            # defining  headings for table
-            self.menu_tree.heading("menu_item", text="Item", anchor=CENTER)
-            self.menu_tree.heading("item_price", text="Price", anchor=CENTER)
-
-            self.menu_tree.place(anchor='e', x=str(self.width * 0.135), y=str(0.28 * self.height))
             self.display_menu()
         else:
             self.menu_tree.delete(*self.menu_tree.get_children())
@@ -1457,13 +1461,13 @@ class InProgressOrdersScreen(tk.Frame):
     def orders_tree(self):
         # Table-Seat Tree
         style = ttk.Style()
-        style.configure("Treeview", foreground="black", rowheight=35, fieldbackground="white")
+        style.configure("Treeview", foreground="black", rowheight=40, fieldbackground="white")
         style.map('Treeview', background=[('selected', 'lightblue')])
 
         CENTER = 'center'
 
-        self.table_frame = tk.Frame(self, width=150, height=400, bg=Constants.background_color)
-        self.table_frame.place(anchor='center', x=str(self.width * 0.15), y=str(0.33 * self.height))
+        self.table_frame = tk.Frame(self, width=100, height=400, bg=Constants.background_color)
+        self.table_frame.place(anchor='center', x=str(self.width * 0.15), y=str(0.35  * self.height))
         ###########  Creating table #############
         self.table_tree = ttk.Treeview(self.table_frame)
         self.table_tree['columns'] = ("table")
@@ -1486,7 +1490,7 @@ class InProgressOrdersScreen(tk.Frame):
         # defining  headings for table
         self.table_tree.heading("table", text="Table", anchor=CENTER)
 
-        self.table_tree.place(anchor='center', x=str(self.width * 0.05), y=str(0.25 * self.height))
+        self.table_tree.place(anchor='center', x=str(self.width * 0.04), y=str(0.25 * self.height))
 
     def display_order_tree_data(self):
         orders_cursor = self.cur.execute("select tableID from orders where state=:c",
@@ -1621,237 +1625,6 @@ class RootWindow(tk.Tk):
         self.frame1.tkraise()
 
 
-#        load_home_page()
-
-# load_past_orders()
-
-
-def system():
-    background_color = "#3A7FF6"
-    btn_color = "#294D8B"
-    font = 'Calibri'
-    root = tk.Tk()
-    width = root.winfo_screenwidth()
-    height = root.winfo_screenheight()
-    root.geometry(F"{width}x{height}")
-    root.title("Restaurant Management System")
-
-    # create a frame widgets
-    frame1 = HomeScreen(root, width=width, height=height, bg=background_color)
-    frame2 = tk.Frame(root)
-    frame3 = RestaurantConfigScreen(root, width=width, height=height, bg=background_color)
-
-    def clear_widgets(framee):
-        # select all frame widgets and delete them
-        for widget in framee.winfo_children():
-            widget.destroy()
-
-    def load_home_page():
-
-        # stack frame 2 above frame 1
-        frame1.tkraise()
-
-        return
-
-        title = tk.Label(root, text="Welcome to \n Restaurant Management System", font=(font, 25, 'bold'),
-                         bg=background_color, fg="White", anchor=tk.W)
-        title.place(anchor='center', x=str(width * 0.5), y=str(0.1 * height))
-
-        tk.Label(frame1, text="This desktop app intends to help managers to monitor the restaurants properly",
-                 font=(font, 12), bg=background_color, fg="White").place(anchor='center', x=str(width / 2),
-                                                                         y=str(0.25 * height))
-
-        # Restaurant Configuration Button
-        btn_1_label = tk.StringVar(value="Restaurant Configuration")
-        btn_1 = tk.Button(frame1, textvariable=btn_1_label, height=2, width=25,
-                          command=load_restaurant_configuration_page,
-                          font=(font, 12, 'bold'), bg=btn_color, fg="White", cursor="hand2")
-        btn_1.place(anchor='center', x=str(width / 2), y=str(0.35 * height))
-
-        # Menu Configuration Button
-        btn_2_label = tk.StringVar(value="Menu Configuration")
-        btn_2 = tk.Button(frame1, textvariable=btn_2_label, height=2, width=25, command=configure_menu,
-                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
-        btn_2.place(anchor='center', x=str(width / 2), y=str(0.45 * height))
-
-        # Waiter Configuration Button
-        # btn_3_label = tk.StringVar(value="Waiters Configuration")
-        # btn_3 = tk.Button(frame1, textvariable=btn_3_label, height=2, width=25, command=lambda: configure_waiters(),
-        #                   font=(font, 12, 'bold'), bg=btn_color, fg="White")
-        # btn_3.place(anchor='center', x=str(width / 2), y=str(0.55 * height))
-
-        # Past Orders Button
-        btn_4_label = tk.StringVar(value="Past\nOrders")
-        btn_4 = tk.Button(frame1, textvariable=btn_4_label, height=2, width=10, command=lambda: load_past_orders(),
-                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
-        btn_4.place(anchor='center', x=str(width * 0.95), y=str(0.85 * height))
-
-        # In-Progress Orders Button
-        btn_5_label = tk.StringVar(value="In-Progress\nOrders")
-        btn_5 = tk.Button(frame1, textvariable=btn_5_label, height=2, width=10, command=lambda: in_progress_orders2(),
-                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
-        btn_5.place(anchor='center', x=str(width * 0.88), y=str(0.85 * height))
-
-        # New Orders Button
-        btn_6_label = tk.StringVar(value="+ New Order")
-        btn_6 = tk.Button(frame1, textvariable=btn_6_label, height=2, width=10, command=lambda: in_progress_orders2(),
-                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
-        btn_6.place(anchor='center', x=str(width * 0.05), y=str(0.85 * height))
-
-    def load_past_orders():
-        clear_widgets(frame1)
-
-        # stack frame 2 above frame 1
-        frame2.tkraise()
-
-        # recipe title widget
-        tk.Label(
-            frame2,
-            text="Past Orders",
-            # bg=background_color,
-            fg="black",
-            font=("Ubuntu", 20)
-        ).pack(pady=25, padx=25)
-
-        # recipe ingredients widgets
-        if True:
-            for i in range(1, 15):
-                tk.Label(
-                    frame2,
-                    text=i,
-                    bg="#28393a",
-                    fg="white",
-                    font=(font, 12),
-                ).pack(fill="both", padx=25)
-                # ).place(anchor='center', x=str(width * 0.3), y=str(0.03*i * height))
-
-        style = ttk.Style()
-        style.configure("Treeview",
-                        foreground="black",
-                        rowheight=40,
-                        fieldbackground="white"
-                        )
-        style.map('Treeview',
-                  background=[('selected', 'lightblue')])
-        # rightframe
-
-        CENTER = 'center'
-
-        past_orders_table = tk.Frame(frame2, width=400, height=700)
-        past_orders_table.place(anchor='center', x=str(width * 0.15), y=str(0.3 * height))
-
-        ###########  Creating table #############
-        my_tree = ttk.Treeview(past_orders_table)
-        my_tree['columns'] = ("ordno", "table", "waiter", "total")
-
-        ############ creating  for table ################
-        horizontal_bar = ttk.Scrollbar(past_orders_table, orient="horizontal")
-        horizontal_bar.configure(command=my_tree.xview)
-        my_tree.configure(xscrollcommand=horizontal_bar.set)
-        # horizontal_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
-
-        vertical_bar = ttk.Scrollbar(past_orders_table, orient="vertical")
-        vertical_bar.configure(command=my_tree.yview)
-        my_tree.configure(yscrollcommand=vertical_bar.set)
-        # vertical_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
-
-        # defining columns for table
-        my_tree.column("#0", width=0, minwidth=0)
-        my_tree.column("ordno", anchor=CENTER, width=80, minwidth=25)
-        my_tree.column("table", anchor=CENTER, width=60, minwidth=25)
-        my_tree.column("waiter", anchor=CENTER, width=60, minwidth=25)
-        my_tree.column("total", anchor=CENTER, width=50, minwidth=25)
-
-        # defining  headings for table
-        my_tree.heading("ordno", text="Order No", anchor=CENTER)
-        my_tree.heading("table", text="Table", anchor=CENTER)
-        my_tree.heading("waiter", text="Waiter", anchor=CENTER)
-        my_tree.heading("total", text="Total", anchor=CENTER)
-
-        my_tree.place(anchor='center', x=str(width * 0.15), y=str(0.5 * height))
-
-        # Order Details Button
-        btn_7_label = tk.StringVar(value="Order\nDetails")
-        btn_7 = tk.Button(frame2, textvariable=btn_7_label, height=2, width=10, command=lambda: in_progress_orders2(),
-                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
-        btn_7.place(anchor='center', x=str(width * 0.10), y=str(0.85 * height))
-
-        # Delete Order Button
-        btn_8_label = tk.StringVar(value="Delete\nOrder")
-        btn_8 = tk.Button(frame2, textvariable=btn_8_label, height=2, width=10, command=lambda: in_progress_orders2(),
-                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
-        btn_8.place(anchor='center', x=str(width * 0.18), y=str(0.85 * height))
-
-        # Back Button
-        btn_9_label = tk.StringVar(value="Back")
-        btn_9 = tk.Button(frame2, textvariable=btn_9_label, height=2, width=10, command=lambda: load_home_page(),
-                          font=(font, 12, 'bold'), bg=btn_color, fg="White")
-        btn_9.place(anchor='center', x=str(width * 0.95), y=str(0.85 * height))
-
-    def load_restaurant_configuration_page():
-        #        clear_widgets(frame1)
-
-        # stack frame 3 above frame 1
-        frame3.tkraise()
-
-        return
-
-        tk.Label(frame3, text="Restaurant Configuration", fg="black", font=(font, 20)).pack(pady=25, padx=25)
-
-        tk.Label(frame3, text="Number of Tables", font=(font, 12, 'bold'), fg="Black") \
-            .place(anchor='center', x=str(width * 0.1), y=str(0.15 * height))
-
-        tables = tk.StringVar()
-
-        global entry_state
-        entry_state = "normal"
-
-        tk.Entry(frame3, font=(font, 16, 'bold'), bd=2, insertwidth=2, justify='left', textvariable=tables,
-                 state=entry_state).place(anchor='e', x=str(width * 0.22), y=str(0.20 * height))
-
-        # Submit Button
-        btn_11_label = tk.StringVar(value="Add")
-        btn_11 = tk.Button(frame3, textvariable=btn_11_label, height=2, width=10, command=lambda: test(tables),
-                           font=(font, 12, 'bold'), bg=btn_color, fg="White")
-        btn_11.place(anchor='e', x=str(width * 0.22), y=str(0.30 * height))
-
-        # Back Button
-        btn_10_label = tk.StringVar(value="Back")
-        btn_10 = tk.Button(frame3, textvariable=btn_10_label, height=2, width=10, command=lambda: load_home_page(),
-                           font=(font, 12, 'bold'), bg=btn_color, fg="White")
-        btn_10.place(anchor='center', x=str(width * 0.95), y=str(0.85 * height))
-
-        def test(x):
-            try:
-                x = x.get()
-                if not x:
-                    messagebox.showinfo("Warning", "Please insert the missing data !")
-                    return
-                x = int(x)
-            except ValueError:
-                messagebox.showinfo("Warning", "Please provide an integer number !")
-
-    # place frame widgets in window
-    for frame in (frame1, frame2, frame3):
-        frame.grid(row=0, column=0, sticky="nesw")
-
-    load_home_page()
-
-    # load_past_orders()
-
-    root.mainloop()
-
-
-# def configure_restaurant():
-#     print("restaurant")
-
-
-
-
-# def in_progress_orders2():
-#     print("In-progress orders")
-
-
 def test_data(db):
     cur = db.cursor()
     delete_tables(cur)
@@ -1869,48 +1642,17 @@ def test_data(db):
 
     db.commit()
 
-    # delete_tables(cur)
-
 
 def main():
+    """You can run the program with run console by uncommenting the test_data(db) line.
+     Using the run console, you should insert at least 3 tables and you should insert 'water' at least to generate
+     correct resutls"""
+
     db = sqlite3.connect('restaurant.db')
     # test_data(db)
     root = RootWindow(db)
     root.mainloop()
-
     db.close()
-
-
-#    system()
-
-# inptdata = input_data()
-#
-#
-# cur = db.cursor()
-#
-# waiter = 2
-# table = 3
-#
-# initialization(cur, inptdata)
-#
-# order_mode(cur, waiter)
-#
-# cooking(cur, table)
-#
-# served_customer(cur, table, waiter)
-#
-# completed_orders(cur)
-#
-# total1 = total(cur, table)
-#
-# print(F"The total bill for table {table} is {total1}")
-#
-# delete_tables(cur)
-#
-# db.commit()
-#
-# db.close()
-
 
 if __name__ == '__main__':
     main()
