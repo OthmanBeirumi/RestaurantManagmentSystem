@@ -1292,12 +1292,10 @@ class NewOrderScreen(tk.Frame):
         horizontal_bar = ttk.Scrollbar(tracking_frame, orient="horizontal")
         horizontal_bar.configure(command=self.tracked_tree.xview)
         self.tracked_tree.configure(xscrollcommand=horizontal_bar.set)
-        # horizontal_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
 
         vertical_bar = ttk.Scrollbar(tracking_frame, orient="vertical")
         vertical_bar.configure(command=self.tracked_tree.yview)
         self.tracked_tree.configure(yscrollcommand=vertical_bar.set)
-        # vertical_bar.place(anchor='center',  x=str(width * 0.5), y=str(0.5 * height))
 
         # defining columns for table
         self.tracked_tree.column("#0", width=0, minwidth=0)
@@ -1520,7 +1518,7 @@ class InProgressOrdersScreen(tk.Frame):
     def seat_item_state_tree(self):
         # Table-Seat Tree
         style = ttk.Style()
-        style.configure("Treeview", foreground="black", rowheight=35, fieldbackground="white")
+        style.configure("Treeview", foreground="black", rowheight=40, fieldbackground="white")
         style.map('Treeview', background=[('selected', 'lightblue')])
 
         CENTER = 'center'
@@ -1568,6 +1566,7 @@ class InProgressOrdersScreen(tk.Frame):
                          ('Ready', self.selected_table[0], seat, item))
         self.root.db.commit()
         messagebox.showinfo("Message", F"{item} for seat {seat} is Ready !")
+        self.select_order()
 
     def serve_seat(self):
         if not self.in_progress_tree.selection():
